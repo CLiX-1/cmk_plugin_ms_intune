@@ -1,0 +1,22 @@
+title: Microsoft Intune: Apple VPP Tokens
+agents: intune
+catalog: cloud/Microsoft
+license: GPLv2
+distribution: Christopher Pommer
+description:
+ This check monitors the status and expiration time of the Apple VPP
+ (Volume Purchase Program) tokens configured in Microsoft Intune.
+
+ The service is {OK}, if the connector has the status "valid".
+ If the connector has a different state, then the services is {CRIT}.
+
+ Otherwise the levels {OK}, {WARN} and {CRIT} depends on the
+ configured check levels for the token expiration time.
+
+ You have to configure the special agent {Microsoft Intune}.
+
+item:
+ The id of the VPP token.
+
+discovery:
+ One service is created for each VPP token.

@@ -1,0 +1,15 @@
+title: Microsoft Intune: Apple MDM Push Certificate
+agents: intune
+catalog: cloud/Microsoft
+license: GPLv2
+distribution: Christopher Pommer
+description:
+ This check monitors the expiration time of an Apple MDM push certificate
+ configured in Microsoft Intune.
+
+ The status {OK}, {WARN} and {CRIT} depends on the configured check levels.
+
+ You have to configure the special agent {Microsoft Intune}.
+
+discovery:
+ One service is created.

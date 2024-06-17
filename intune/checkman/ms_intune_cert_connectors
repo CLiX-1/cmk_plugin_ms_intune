@@ -1,0 +1,19 @@
+title: Microsoft Intune: Certificate Connectors
+agents: intune
+catalog: cloud/Microsoft
+license: GPLv2
+distribution: Christopher Pommer
+description:
+ This check monitors the status of certificate connectors configured
+ in Microsoft Intune.
+
+ The service is {OK}, if the connector has the status "active".
+ If the connector has a different state, then the services is {CRIT}.
+
+ You have to configure the special agent {Microsoft Intune}.
+
+item:
+ The name of the intune connector.
+
+discovery:
+ One service is created for each intune connector.
