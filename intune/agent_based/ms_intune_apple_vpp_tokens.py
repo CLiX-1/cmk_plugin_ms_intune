@@ -21,7 +21,7 @@
 import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from cmk.agent_based.v2 import (
@@ -90,18 +90,18 @@ def check_ms_intune_apple_vpp_tokens(item: str, params: Mapping[str, Any], secti
     token_state = token["token_state"]
     token_expiration = token["token_expiration"]
 
-    token_expiration_datetime = datetime.strptime(token_expiration, "%Y-%m-%dT%H:%M:%SZ")
-    token_expiration_timestamp = token_expiration_datetime.timestamp()
+    token_expiration_datetime_utc = datetime.strptime(token_expiration, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+    token_expiration_timestamp = token_expiration_datetime_utc.timestamp()
     token_expiration_timestamp_render = render.datetime(int(token_expiration_timestamp))
 
     token_expiration_timespan = token_expiration_timestamp - datetime.now().timestamp()
 
     result_details = (
-        f"Expiration time: {token_expiration_timestamp_render} (UTC)"
+        f"Expiration time: {token_expiration_timestamp_render}"
         f"\\nState: {token_state}"
         f"\\nApple ID: {token_appleid}"
     )
-    result_summary = f"Expiration time: {token_expiration_timestamp_render} (UTC), State: {token_state}"
+    result_summary = f"Expiration time: {token_expiration_timestamp_render}, State: {token_state}"
 
     if token_expiration_timespan > 0:
         yield from check_levels(
