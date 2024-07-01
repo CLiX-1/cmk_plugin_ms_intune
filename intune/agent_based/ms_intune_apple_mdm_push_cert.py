@@ -21,7 +21,7 @@
 import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any
 
 from cmk.agent_based.v2 import (
@@ -69,8 +69,8 @@ def check_ms_intune_apple_mdm_push_cert(params: Mapping[str, Any], section: Sect
 
     params_levels_cert_expiration = params.get("cert_expiration")
 
-    cert_expiration_datetime_utc = datetime.strptime(cert_expiration, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
-    cert_expiration_timestamp = cert_expiration_datetime_utc.timestamp()
+    cert_expiration_datetime = datetime.fromisoformat(cert_expiration)
+    cert_expiration_timestamp = cert_expiration_datetime.timestamp()
     cert_expiration_timestamp_render = render.datetime(int(cert_expiration_timestamp))
 
     cert_expiration_timespan = cert_expiration_timestamp - datetime.now().timestamp()
