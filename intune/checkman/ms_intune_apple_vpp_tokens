@@ -16,7 +16,7 @@ description:
  You have to configure the special agent {Microsoft Intune}.
 
 item:
- The id of the VPP token.
+ The name of the VPP token.
 
 discovery:
  One service is created for each VPP token.
