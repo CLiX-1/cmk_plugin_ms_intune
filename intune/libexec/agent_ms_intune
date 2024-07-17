@@ -28,6 +28,22 @@ import requests
 import cmk.utils.password_store
 
 
+def map_app_type(app_type):
+
+    type_map = {
+        "#microsoft.graph.androidForWorkApp": "Android for work",
+        "#microsoft.graph.androidManagedStoreApp": "Android managed store",
+        "#microsoft.graph.androidManagedStoreWebApp": "Android managed store web",
+        "#microsoft.graph.iosVppApp": "iOS VPP",
+        "#microsoft.graph.macOsVppApp": "macOS VPP",
+        "#microsoft.graph.microsoftStoreForBusinessApp": "MS Store for business",
+    }
+
+    app_type_short = type_map.get(app_type, app_type.replace("#microsoft.graph.", ""))
+
+    return app_type_short
+
+
 def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -168,6 +184,54 @@ def get_intune_vpp_tokens(token):
     return vpp_token_list
 
 
+def get_intune_app_licenses(token):
+    intune_apps_url = (
+        "https://graph.microsoft.com/beta/deviceAppManagement/mobileApps?$filter=publishingState eq 'published'"
+    )
+
+    headers = {"Accept": "application/json", "Authorization": "Bearer " + token}
+
+    intune_apps = []
+
+    while True:
+        try:
+            intune_apps_response = requests.get(intune_apps_url, headers=headers)
+            intune_apps_response.raise_for_status()
+        except requests.exceptions.RequestException as err:
+            print(intune_apps_response.text)
+            sys.stderr.write("CRITICAL | Failed to get intune apps\n")
+            sys.stderr.write(f"Error: {err}\n")
+            sys.exit(2)
+
+        intune_apps_json = intune_apps_response.json()
+        intune_apps.extend(intune_apps_json.get("value", []))
+
+        next_link = intune_apps_json.get("@odata.nextLink")
+        if next_link:
+            intune_apps = next_link
+        else:
+            break
+
+    intune_app_licenses = [
+        app for app in intune_apps if app.get("publishingState") == "published" and app.get("totalLicenseCount")
+    ]
+
+    app_list = []
+    for app in intune_app_licenses:
+        app_dict = {
+            "app_type": map_app_type(app["@odata.type"]),
+            "app_name": app["displayName"],
+            "app_publisher": app.get("publisher"),
+            "app_license_total": app["totalLicenseCount"],
+            "app_license_consumed": app["usedLicenseCount"],
+            "app_assigned": app.get("isAssigned"),
+        }
+
+        app_list.append(app_dict)
+
+    return app_list
+
+
 def main():
     args = parse_arguments()
     tenant_id = args.tenant_id
@@ -198,6 +262,12 @@ def main():
         if intune_apple_vpp_tokens:
             print("<<<ms_intune_apple_vpp_tokens:sep(0)>>>")
             print(json.dumps(intune_apple_vpp_tokens))
+
+    if "app_licenses" in services_to_monitor:
+        intune_app_licenses = get_intune_app_licenses(token)
+        if intune_app_licenses:
+            print("<<<ms_intune_app_licenses:sep(0)>>>")
+            print(json.dumps(intune_app_licenses))
 
 
 if __name__ == "__main__":

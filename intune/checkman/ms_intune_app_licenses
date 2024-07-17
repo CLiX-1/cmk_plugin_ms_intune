@@ -1,0 +1,18 @@
+title: Microsoft Intune: App Licenses
+agents: intune
+catalog: cloud/Microsoft
+license: GPLv2
+distribution: Christopher Pommer
+description:
+ This check monitors the licenses from published Intune applications.
+
+ Depending on the configured check levels, the service is in
+ state {OK}, {WARN} or {CRIT}.
+
+ You have to configure the special agent {Microsoft Intune}.
+
+item:
+ The type and application name.
+
+discovery:
+ One service is created for each application name and type combination.
