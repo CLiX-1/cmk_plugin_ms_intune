@@ -6,8 +6,9 @@ You can download the .mkp file from releases in this repository to upload it dir
 
 The Plugin provides monitoring of these components:
 - Intune App Licenses
+- Intune Apple ADE Tokens (Automated Device Enrollment)
 - Intune Apple MDM Push Certificate
-- Intune Apple VPP Tokens
+- Intune Apple VPP Tokens (Volume Purchase Program)
 - Intune Certificate Connectors
 
 The Special Agent uses the Microsoft Graph API to collect the data.
