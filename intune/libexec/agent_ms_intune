@@ -100,91 +100,8 @@ def get_access_token(tenant_id, app_id, app_secret, resource_scope):
     return access_token
 
 
-def get_intune_apple_mdm_push_cert(token):
-    intune_cert_url = "https://graph.microsoft.com/v1.0/deviceManagement/applePushNotificationCertificate"
-
-    headers = {"Accept": "application/json", "Authorization": "Bearer " + token}
-
-    try:
-        intune_cert_response = requests.get(intune_cert_url, headers=headers)
-        intune_cert_response.raise_for_status()
-    except requests.exceptions.RequestException as err:
-        # if no certificate configured, then the request responds with 404
-        if intune_cert_response.status_code == 404:
-            return
-        sys.stderr.write("CRITICAL | Failed to get certificate\n")
-        sys.stderr.write(f"Error: {err}\n")
-        sys.exit(2)
-
-    intune_cert_json = intune_cert_response.json()
-
-    intune_cert = {
-        "cert_appleid": intune_cert_json.get("appleIdentifier"),
-        "cert_expiration": intune_cert_json.get("expirationDateTime"),
-    }
-
-    return intune_cert
-
-
-def get_intune_cert_connectors(token):
-    intune_cert_connectors_url = "https://graph.microsoft.com/beta/deviceManagement/ndesConnectors"
-
-    headers = {"Accept": "application/json", "Authorization": "Bearer " + token}
-
-    try:
-        intune_cert_connectors_response = requests.get(intune_cert_connectors_url, headers=headers)
-        intune_cert_connectors_response.raise_for_status()
-    except requests.exceptions.RequestException as err:
-        sys.stderr.write("CRITICAL | Failed to get certificate connectors\n")
-        sys.stderr.write(f"Error: {err}\n")
-        sys.exit(2)
-
-    intune_cert_connectors = intune_cert_connectors_response.json().get("value", [])
-
-    connectors_list = []
-    for connector in intune_cert_connectors:
-        connectors_dict = {
-            "connector_connection_last": connector["lastConnectionDateTime"],
-            "connector_state": connector["state"],
-            "connector_name": connector["displayName"],
-            "connector_version": connector["connectorVersion"],
-        }
-
-        connectors_list.append(connectors_dict)
-
-    return connectors_list
-
-
-def get_intune_vpp_tokens(token):
-    intune_vpp_tokens_url = "https://graph.microsoft.com/v1.0/deviceAppManagement/vppTokens"
-
-    headers = {"Accept": "application/json", "Authorization": "Bearer " + token}
-
-    try:
-        intune_vpp_tokens_response = requests.get(intune_vpp_tokens_url, headers=headers)
-        intune_vpp_tokens_response.raise_for_status()
-    except requests.exceptions.RequestException as err:
-        sys.stderr.write("CRITICAL | Failed to get vpp tokens\n")
-        sys.stderr.write(f"Error: {err}\n")
-        sys.exit(2)
-
-    intune_vpp_tokens = intune_vpp_tokens_response.json().get("value", [])
-
-    vpp_token_list = []
-    for vpp_token in intune_vpp_tokens:
-        vpp_token_dict = {
-            "token_id": vpp_token["id"],
-            "token_appleid": vpp_token["appleId"],
-            "token_state": vpp_token["state"],
-            "token_expiration": vpp_token["expirationDateTime"],
-        }
-
-        vpp_token_list.append(vpp_token_dict)
-
-    return vpp_token_list
-
-
 def get_intune_app_licenses(token):
+    # only iosVppApp available in v1.0 (2024-07-17)
     intune_apps_url = (
         "https://graph.microsoft.com/beta/deviceAppManagement/mobileApps?$filter=publishingState eq 'published'"
     )
@@ -219,17 +136,144 @@ def get_intune_app_licenses(token):
     app_list = []
     for app in intune_app_licenses:
         app_dict = {
-            "app_type": map_app_type(app["@odata.type"]),
+            "app_assigned": app.get("isAssigned"),
+            "app_license_consumed": app["usedLicenseCount"],
+            "app_license_total": app["totalLicenseCount"],
             "app_name": app["displayName"],
             "app_publisher": app.get("publisher"),
-            "app_license_total": app["totalLicenseCount"],
-            "app_license_consumed": app["usedLicenseCount"],
-            "app_assigned": app.get("isAssigned"),
+            "app_type": map_app_type(app["@odata.type"]),
         }
 
         app_list.append(app_dict)
 
     return app_list
+
+
+def get_intune_apple_ade_tokens(token):
+    # endpoint not available in v1.0 (2024-07-17)
+    intune_ade_tokens_url = (
+        "https://graph.microsoft.com/beta/deviceManagement/depOnboardingSettings"
+        "?$select=appleIdentifier,tokenExpirationDateTime,id,tokenName,tokenType"
+        "&orderby=id"
+    )
+
+    headers = {"Accept": "application/json", "Authorization": "Bearer " + token}
+
+    try:
+        intune_ade_tokens_response = requests.get(intune_ade_tokens_url, headers=headers)
+        intune_ade_tokens_response.raise_for_status()
+    except requests.exceptions.RequestException as err:
+        sys.stderr.write("CRITICAL | Failed to get ade tokens\n")
+        sys.stderr.write(f"Error: {err}\n")
+        sys.exit(2)
+
+    intune_ade_tokens = intune_ade_tokens_response.json().get("value", [])
+
+    ade_token_list = []
+    for ade_token in intune_ade_tokens:
+        ade_token_dict = {
+            "token_appleid": ade_token["appleIdentifier"],
+            "token_expiration": ade_token["tokenExpirationDateTime"],
+            "token_id": ade_token["id"],
+            "token_name": ade_token["tokenName"],
+            "token_type": ade_token["tokenType"],
+        }
+
+        ade_token_list.append(ade_token_dict)
+
+    return ade_token_list
+
+
+def get_intune_apple_mdm_push_cert(token):
+    intune_cert_url = "https://graph.microsoft.com/v1.0/deviceManagement/applePushNotificationCertificate"
+
+    headers = {"Accept": "application/json", "Authorization": "Bearer " + token}
+
+    try:
+        intune_cert_response = requests.get(intune_cert_url, headers=headers)
+        intune_cert_response.raise_for_status()
+    except requests.exceptions.RequestException as err:
+        # if no certificate configured, then the request responds with 404
+        if intune_cert_response.status_code == 404:
+            return
+        sys.stderr.write("CRITICAL | Failed to get certificate\n")
+        sys.stderr.write(f"Error: {err}\n")
+        sys.exit(2)
+
+    intune_cert_json = intune_cert_response.json()
+
+    intune_cert = {
+        "cert_appleid": intune_cert_json.get("appleIdentifier"),
+        "cert_expiration": intune_cert_json.get("expirationDateTime"),
+    }
+
+    return intune_cert
+
+
+def get_intune_apple_vpp_tokens(token):
+    # displayName not available in v1.0 (2024-07-17)
+    intune_vpp_tokens_url = (
+        "https://graph.microsoft.com/beta/deviceAppManagement/vppTokens"
+        "?$select=appleId,displayName,expirationDateTime,id,state"
+        "&$orderby=id"
+    )
+
+    headers = {"Accept": "application/json", "Authorization": "Bearer " + token}
+
+    try:
+        intune_vpp_tokens_response = requests.get(intune_vpp_tokens_url, headers=headers)
+        intune_vpp_tokens_response.raise_for_status()
+    except requests.exceptions.RequestException as err:
+        sys.stderr.write("CRITICAL | Failed to get vpp tokens\n")
+        sys.stderr.write(f"Error: {err}\n")
+        sys.exit(2)
+
+    intune_vpp_tokens = intune_vpp_tokens_response.json().get("value", [])
+
+    vpp_token_list = []
+    for vpp_token in intune_vpp_tokens:
+        vpp_token_dict = {
+            "token_appleid": vpp_token["appleId"],
+            "token_expiration": vpp_token["expirationDateTime"],
+            "token_id": vpp_token["id"],
+            "token_name": vpp_token["displayName"],
+            "token_state": vpp_token["state"],
+        }
+
+        vpp_token_list.append(vpp_token_dict)
+
+    return vpp_token_list
+
+
+def get_intune_cert_connectors(token):
+    # endpoint not available in v1.0 (2024-07-17)
+    intune_cert_connectors_url = "https://graph.microsoft.com/beta/deviceManagement/ndesConnectors?&$orderby=id"
+
+    headers = {"Accept": "application/json", "Authorization": "Bearer " + token}
+
+    try:
+        intune_cert_connectors_response = requests.get(intune_cert_connectors_url, headers=headers)
+        intune_cert_connectors_response.raise_for_status()
+    except requests.exceptions.RequestException as err:
+        sys.stderr.write("CRITICAL | Failed to get certificate connectors\n")
+        sys.stderr.write(f"Error: {err}\n")
+        sys.exit(2)
+
+    intune_cert_connectors = intune_cert_connectors_response.json().get("value", [])
+
+    connectors_list = []
+    for connector in intune_cert_connectors:
+        connectors_dict = {
+            "connector_connection_last": connector["lastConnectionDateTime"],
+            "connector_id": connector["id"],
+            "connector_name": connector["displayName"],
+            "connector_state": connector["state"],
+            "connector_version": connector["connectorVersion"],
+        }
+
+        connectors_list.append(connectors_dict)
+
+    return connectors_list
 
 
 def main():
@@ -245,29 +289,35 @@ def main():
 
     token = get_access_token(tenant_id, app_id, app_secret, resource_scope)
 
+    if "app_licenses" in services_to_monitor:
+        intune_app_licenses = get_intune_app_licenses(token)
+        if intune_app_licenses:
+            print("<<<ms_intune_app_licenses:sep(0)>>>")
+            print(json.dumps(intune_app_licenses))
+
+    if "apple_ade_tokens" in services_to_monitor:
+        intune_apple_ade_tokens = get_intune_apple_ade_tokens(token)
+        if intune_apple_ade_tokens:
+            print("<<<ms_intune_apple_ade_tokens:sep(0)>>>")
+            print(json.dumps(intune_apple_ade_tokens))
+
     if "apple_mdm_push_cert" in services_to_monitor:
         intune_apple_cert = get_intune_apple_mdm_push_cert(token)
         if intune_apple_cert:
             print("<<<ms_intune_apple_mdm_push_cert:sep(0)>>>")
             print(json.dumps(intune_apple_cert))
 
+    if "vpp_tokens" in services_to_monitor:
+        intune_apple_vpp_tokens = get_intune_apple_vpp_tokens(token)
+        if intune_apple_vpp_tokens:
+            print("<<<ms_intune_apple_vpp_tokens:sep(0)>>>")
+            print(json.dumps(intune_apple_vpp_tokens))
+
     if "cert_connectors" in services_to_monitor:
         intune_cert_connectors = get_intune_cert_connectors(token)
         if intune_cert_connectors:
             print("<<<ms_intune_cert_connectors:sep(0)>>>")
             print(json.dumps(intune_cert_connectors))
-
-    if "vpp_tokens" in services_to_monitor:
-        intune_apple_vpp_tokens = get_intune_vpp_tokens(token)
-        if intune_apple_vpp_tokens:
-            print("<<<ms_intune_apple_vpp_tokens:sep(0)>>>")
-            print(json.dumps(intune_apple_vpp_tokens))
-
-    if "app_licenses" in services_to_monitor:
-        intune_app_licenses = get_intune_app_licenses(token)
-        if intune_app_licenses:
-            print("<<<ms_intune_app_licenses:sep(0)>>>")
-            print(json.dumps(intune_app_licenses))
 
 
 if __name__ == "__main__":

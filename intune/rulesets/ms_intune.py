@@ -95,23 +95,34 @@ def _parameter_form_special_agent_ms_intune() -> Dictionary:
                         "Select the Microsoft Intune services that you want to monitor. Ensure "
                         "that you add the required Microsoft Graph API permissions to "
                         "your Microsoft Entra app registration and grant admin consent "
-                        "to them. For Apple MDM push certificate, you must configure at least the "
+                        "to them. For App licenses, you must configure at least the "
+                        "<tt>DeviceManagementApps.Read.All</tt> API application permission. "
+                        "For Apple ADE tokens, Apple MDM push certificate "
+                        "and VPP tokens, you must configure at least the "
                         "<tt>DeviceManagementServiceConfig.Read.All</tt> API application permission. "
                         "For Certificate connectors, you must configure at least the "
                         "<tt>DeviceManagementConfiguration.Read.All</tt> API application permission. "
-                        "For VPP tokens, you must configure at least the "
-                        "<tt>DeviceManagementServiceConfig.Read.All</tt> API application permission."
                     ),
                     elements=[
+                        MultipleChoiceElement(
+                            name="app_licenses",
+                            title=Title("App licenses"),
+                        ),
+                        MultipleChoiceElement(
+                            name="apple_ade_tokens",
+                            title=Title("Apple ADE tokens (Automated Device Enrollment)"),
+                        ),
                         MultipleChoiceElement(
                             name="apple_mdm_push_cert",
                             title=Title("Apple MDM push certificate"),
                         ),
                         MultipleChoiceElement(
+                            name="vpp_tokens", title=Title("Apple VPP tokens (Volume Purchase Program)")
+                        ),
+                        MultipleChoiceElement(
                             name="cert_connectors",
                             title=Title("Certificate connectors"),
                         ),
-                        MultipleChoiceElement(name="vpp_tokens", title=Title("VPP tokens")),
                     ],
                     custom_validate=[
                         LengthInRange(
@@ -119,7 +130,15 @@ def _parameter_form_special_agent_ms_intune() -> Dictionary:
                             error_msg=Message("Select one or more <b>Microsoft Intune services to monitor</b>"),
                         ),
                     ],
-                    prefill=DefaultValue(["apple_mdm_push_cert", "cert_connectors", "vpp_tokens"]),
+                    prefill=DefaultValue(
+                        [
+                            "app_licenses",
+                            "apple_ade_tokens",
+                            "apple_mdm_push_cert",
+                            "cert_connectors",
+                            "vpp_tokens",
+                        ]
+                    ),
                 ),
                 required=True,
             ),

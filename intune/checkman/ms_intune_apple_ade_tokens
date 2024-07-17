@@ -1,0 +1,19 @@
+title: Microsoft Intune: Apple ADE Tokens
+agents: intune
+catalog: cloud/Microsoft
+license: GPLv2
+distribution: Christopher Pommer
+description:
+ This check monitors expiration time of the Apple ADE
+ (Automated Device Enrollment) tokens configured in Microsoft Intune.
+
+ Depending on the configured check levels, the service is in
+ state {OK}, {WARN} or {CRIT}.
+
+ You have to configure the special agent {Microsoft Intune}.
+
+item:
+ The name of the ADE token.
+
+discovery:
+ One service is created for each ADE token.
