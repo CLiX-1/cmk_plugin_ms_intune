@@ -39,8 +39,9 @@ from cmk.agent_based.v2 import (
 @dataclass(frozen=True)
 class ConnectorInfo:
     connector_connection_last: str
-    connector_state: str
+    connector_id: str
     connector_name: str
+    connector_state: str
     connector_version: str
 
 
@@ -51,14 +52,9 @@ Section = Mapping[str, Sequence[ConnectorInfo]]
 # [
 #     {
 #         "connector_connection_last": "2024-05-18T21:33:26.1092739Z",
-#         "connector_state": "active",
+#         "connector_id": "00000000-0000-0000-0000-000000000000",
 #         "connector_name": "Connector1",
-#         "connector_version": "6.2301.1.0"
-#     },
-#     {
-#         "connector_connection_last": "2024-05-18T21:29:30.5308288Z",
 #         "connector_state": "active",
-#         "connector_name": "Connector2",
 #         "connector_version": "6.2301.1.0"
 #     },
 #     ...
@@ -67,8 +63,18 @@ Section = Mapping[str, Sequence[ConnectorInfo]]
 
 def parse_ms_intune_cert_connectors(string_table: StringTable) -> Section:
     parsed = {}
+    connector_names = set()
     for item in json.loads("".join(string_table[0])):
-        parsed[item["connector_name"]] = item
+        connector_name = item["connector_name"]
+        # generate unique names, because connector name is not unique
+        if connector_name in connector_names:
+            connector_name_unique = f"{connector_name}_{item["connector_id"][-4:]}"
+        else:
+            connector_name_unique = connector_name
+            connector_names.add(connector_name)
+
+        parsed[connector_name_unique] = item
+
     return parsed
 
 
@@ -83,6 +89,8 @@ def check_ms_intune_cert_connectors(item: str, section: Section) -> CheckResult:
         return
 
     connector_connection_last = connector["connector_connection_last"]
+    connector_id = connector["connector_id"]
+    connector_name = connector["connector_name"]
     connector_state = connector["connector_state"]
     connector_version = connector["connector_version"]
 
@@ -93,9 +101,11 @@ def check_ms_intune_cert_connectors(item: str, section: Section) -> CheckResult:
     result_summary = f"State: {connector_state}"
 
     result_details = (
-        f"State: {connector_state}"
-        f"\\nLast connected: {connector_connection_last_timestamp_render}"
+        f"Connector name: {connector_name}"
+        f"\\nConnector ID: {connector_id}"
         f"\\nConnector version: {connector_version}"
+        f"\\nLast connected: {connector_connection_last_timestamp_render}"
+        f"\\nState: {connector_state}"
     )
 
     if connector_state != "active":

@@ -40,26 +40,22 @@ from cmk.agent_based.v2 import (
 
 @dataclass(frozen=True)
 class TokenInfo:
-    token_id: str
     token_appleid: str
-    token_state: str
     token_expiration: str
+    token_id: str
+    token_name: str
+    token_state: str
 
 
 # Example data from special agent:
 # <<<ms_intune_apple_vpp_tokens:sep(0)>>>
 # [
 #     {
+#         "token_appleid": "vpp@domain.td",
+#         "token_expiration": "2025-03-02T06:54:05Z"
 #         "token_id": "00000000-0000-0000-0000-000000000000",
-#         "token_appleid": "vpp@domain.td",
-#         "token_state": "valid",
-#         "token_expiration": "2025-03-02T06:54:05Z"
-#     },
-#     {
-#         "token_id": "00000000-0000-0000-0000-000000000001",
-#         "token_appleid": "vpp@domain.td",
-#         "token_state": "valid",
-#         "token_expiration": "2025-03-02T06:54:05Z"
+#         "token_name": "valid",
+#         "token_state": "Token 1",
 #     },
 #     ...
 # ]
@@ -69,8 +65,18 @@ Section = Mapping[str, Sequence[TokenInfo]]
 
 def parse_ms_intune_apple_vpp_tokens(string_table: StringTable) -> Section:
     parsed = {}
+    token_names = set()
     for item in json.loads("".join(string_table[0])):
-        parsed[item["token_id"]] = item
+        token_name = item["token_name"]
+        # generate unique names, because token name is not unique
+        if token_name in token_names:
+            token_name_unique = f"{token_name}_{item["token_id"][-4:]}"
+        else:
+            token_name_unique = token_name
+            token_names.add(token_name)
+
+        parsed[token_name_unique] = item
+
     return parsed
 
 
@@ -87,8 +93,10 @@ def check_ms_intune_apple_vpp_tokens(item: str, params: Mapping[str, Any], secti
     params_levels_token_expiration = params.get("token_expiration")
 
     token_appleid = token["token_appleid"]
-    token_state = token["token_state"]
     token_expiration = token["token_expiration"]
+    token_id = token["token_id"]
+    token_name = token["token_name"]
+    token_state = token["token_state"]
 
     token_expiration_datetime = datetime.fromisoformat(token_expiration)
     token_expiration_timestamp = token_expiration_datetime.timestamp()
@@ -98,8 +106,10 @@ def check_ms_intune_apple_vpp_tokens(item: str, params: Mapping[str, Any], secti
 
     result_details = (
         f"Expiration time: {token_expiration_timestamp_render}"
-        f"\\nState: {token_state}"
+        f"\\nToken name: {token_name}"
+        f"\\nToken ID: {token_id}"
         f"\\nApple ID: {token_appleid}"
+        f"\\nState: {token_state}"
     )
     result_summary = f"Expiration time: {token_expiration_timestamp_render}, State: {token_state}"
 
@@ -140,7 +150,7 @@ agent_section_ms_intune_apple_vpp_tokens = AgentSection(
 
 check_plugin_ms_intune_apple_vpp_tokens = CheckPlugin(
     name="ms_intune_apple_vpp_tokens",
-    service_name="Intune VPP token %s",
+    service_name="Intune Apple VPP token %s",
     discovery_function=discover_ms_intune_apple_vpp_tokens,
     check_function=check_ms_intune_apple_vpp_tokens,
     check_ruleset_name="ms_intune_apple_vpp_tokens",
