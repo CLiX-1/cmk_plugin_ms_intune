@@ -35,8 +35,8 @@ def _parameter_form_ms_intune_apple_vpp_tokens() -> Dictionary:
     return Dictionary(
         title=Title("Intune Apple VPP Tokens"),
         help_text=Help(
-            "Parameters for the expiration time thresholds from Apple VPP tokens "
-            "configured in Microsoft Intune. "
+            "Parameters for the expiration time thresholds from Apple VPP "
+            "(Volume Purchase Program) tokens configured in Microsoft Intune. "
             "To use this service, you need to set up the <b>Microsoft Intune</b> special agent."
         ),
         elements={
@@ -67,5 +67,5 @@ rule_spec_ms_intune_apple_vpp_tokens = CheckParameters(
     title=Title("Intune Apple VPP Tokens"),
     parameter_form=_parameter_form_ms_intune_apple_vpp_tokens,
     topic=Topic.CLOUD,
-    condition=HostAndItemCondition(item_title=Title("VPP Token")),
+    condition=HostAndItemCondition(item_title=Title("VPP token")),
 )
