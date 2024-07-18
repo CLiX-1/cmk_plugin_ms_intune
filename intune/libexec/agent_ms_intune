@@ -165,7 +165,7 @@ def get_intune_apple_ade_tokens(token):
     except requests.exceptions.RequestException as err:
         sys.stderr.write("CRITICAL | Failed to get ade tokens\n")
         sys.stderr.write(f"Error: {err}\n")
-        sys.exit(2)
+        sys.exit(3)
 
     intune_ade_tokens = intune_ade_tokens_response.json().get("value", [])
 
@@ -198,7 +198,7 @@ def get_intune_apple_mdm_push_cert(token):
             return
         sys.stderr.write("CRITICAL | Failed to get certificate\n")
         sys.stderr.write(f"Error: {err}\n")
-        sys.exit(2)
+        sys.exit(4)
 
     intune_cert_json = intune_cert_response.json()
 
@@ -226,7 +226,7 @@ def get_intune_apple_vpp_tokens(token):
     except requests.exceptions.RequestException as err:
         sys.stderr.write("CRITICAL | Failed to get vpp tokens\n")
         sys.stderr.write(f"Error: {err}\n")
-        sys.exit(2)
+        sys.exit(5)
 
     intune_vpp_tokens = intune_vpp_tokens_response.json().get("value", [])
 
@@ -257,7 +257,7 @@ def get_intune_cert_connectors(token):
     except requests.exceptions.RequestException as err:
         sys.stderr.write("CRITICAL | Failed to get certificate connectors\n")
         sys.stderr.write(f"Error: {err}\n")
-        sys.exit(2)
+        sys.exit(6)
 
     intune_cert_connectors = intune_cert_connectors_response.json().get("value", [])
 
