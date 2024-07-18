@@ -70,7 +70,7 @@ def parse_ms_intune_apple_ade_tokens(string_table: StringTable) -> Section:
         token_name = item["token_name"]
         # generate unique names, because token name is not unique
         if token_name in token_names:
-            token_name_unique = f"{token_name}_{item["token_id"][-4:]}"
+            token_name_unique = f"{token_name} {item["token_id"][-4:]}"
         else:
             token_name_unique = token_name
             token_names.add(token_name)
