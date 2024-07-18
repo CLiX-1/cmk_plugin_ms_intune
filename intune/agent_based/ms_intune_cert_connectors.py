@@ -68,7 +68,7 @@ def parse_ms_intune_cert_connectors(string_table: StringTable) -> Section:
         connector_name = item["connector_name"]
         # generate unique names, because connector name is not unique
         if connector_name in connector_names:
-            connector_name_unique = f"{connector_name}_{item["connector_id"][-4:]}"
+            connector_name_unique = f"{connector_name} {item["connector_id"][-4:]}"
         else:
             connector_name_unique = connector_name
             connector_names.add(connector_name)
