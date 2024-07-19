@@ -130,7 +130,7 @@ def get_intune_app_licenses(token):
             break
 
     intune_app_licenses = [
-        app for app in intune_apps if app.get("publishingState") == "published" and app.get("totalLicenseCount")
+        app for app in intune_apps if app.get("totalLicenseCount")
     ]
 
     app_list = []
