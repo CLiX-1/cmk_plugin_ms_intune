@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- encoding: utf-8; py-indent-offset: 4 -*-
+# -*- coding: utf-8; py-indent-offset: 4; max-line-length: 100 -*-
 
 # Copyright (C) 2024  Christopher Pommer <cp.software@outlook.de>
 
@@ -18,14 +18,26 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
+####################################################################################################
+# This Checkmk plugin (Special Agent) retrieves information from Microsoft Intune using the
+# Microsoft Graph API. The plugin can be used to monitor the following services:
+# - App Licenses
+# - Apple Automated Device Enrollment (ADE) Tokens
+# - Apple MDM Push Certificate
+# - Apple VPP Tokens
+# - Certificate Connectors
+
+
 import sys
 import argparse
 import json
 from pathlib import Path
+from typing import List, Optional, TypedDict
 
 import requests
 
 import cmk.utils.password_store
+from cmk.utils.http_proxy_config import deserialize_http_proxy_config, HTTPProxyConfig
 
 
 def map_app_type(app_type):
@@ -44,38 +56,72 @@ def map_app_type(app_type):
     return app_type_short
 
 
-def parse_arguments():
+def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--tenant-id",
-        dest="tenant_id",
-        required=True,
-        help="The unique ID from the Microsoft Entra tenant.",
+        "--tenant-id", required=True, help="The unique ID from the Microsoft Entra tenant."
     )
     parser.add_argument(
         "--app-id",
-        dest="app_id",
         required=True,
-        help="The ID of the Micrsoft Entra app registration for Microsoft Graph API requests.",
+        help="The App ID of the Microsoft Entra app registration for Microsoft Graph API requests.",
     )
     parser.add_argument(
         "--app-secret",
-        dest="app_secret",
         required=True,
         help="The client secret from the Microsoft Entra app registration.",
     )
     parser.add_argument(
-        "--services-to-monitor",
-        dest="services_to_monitor",
+        "--proxy",
         required=False,
-        help="Microsoft Intune services that you want to monitor.",
+        help=(
+            "The HTTP proxy used to connect to the Microsoft Graph API. If not set, the "
+            "environment settings will be used."
+        ),
+    )
+    parser.add_argument(
+        "--services-to-monitor",
+        required=False,
+        help=(
+            "Comma-separated list of Microsoft Intune services you want to monitor. "
+            "Possible values: app_licenses, apple_ade_tokens, apple_mdm_push_cert, cert_connectors"
+            ", vpp_tokens"
+        ),
+    )
+    parser.add_argument(
+        "--timeout",
+        required=False,
+        type=float,
+        default=10.0,
+        help=(
+            "Define a custom timeout in seconds to use for each API request. The "
+            "timeout is used for token request and any service that should be "
+            "monitored."
+        ),
     )
 
     return parser.parse_args()
 
 
-def get_access_token(tenant_id, app_id, app_secret, resource_scope):
-    token_url = "https://login.microsoftonline.com/" + tenant_id + "/oauth2/v2.0/token"
+def handle_error(err: Exception, context: str, exit_code: int = 1) -> None:
+    err_msg = f"{err}"
+    if getattr(err, "response", None) and err.response.text:
+        err_msg += f"Response: {err.response.text}"
+
+    sys.stderr.write(f"{err_msg}\n\n{context}\n")
+
+    sys.exit(exit_code)
+
+
+def get_access_token(
+    tenant_id: str,
+    app_id: str,
+    app_secret: str,
+    resource_scope: str,
+    timeout: float,
+    proxy: Optional[HTTPProxyConfig],
+) -> str:
+    token_url = f"https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token"
 
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
 
@@ -87,12 +133,24 @@ def get_access_token(tenant_id, app_id, app_secret, resource_scope):
     }
 
     try:
-        api_response = requests.post(token_url, headers=headers, data=body)
+        api_response = requests.post(
+            token_url,
+            headers=headers,
+            data=body,
+            timeout=timeout,
+            proxies=proxy.to_requests_proxies(),
+        )
         api_response.raise_for_status()
+    except requests.exceptions.Timeout as err:
+        handle_error(
+            err,
+            f"Timeout while getting access token ({int(timeout)}s).",
+            11,
+        )
     except requests.exceptions.RequestException as err:
-        sys.stderr.write("CRITICAL | Failed to get access token\n")
-        sys.stderr.write(f"Error: {err}\n")
-        sys.exit(1)
+        handle_error(
+            err, "Failed to get access token. Please check your connection configuration.", 1
+        )
 
     api_response_json = api_response.json()
     access_token = api_response_json["access_token"]
@@ -100,42 +158,60 @@ def get_access_token(tenant_id, app_id, app_secret, resource_scope):
     return access_token
 
 
-def get_intune_app_licenses(token):
+class IntuneApp(TypedDict):
+    app_type: str
+    app_name: str
+    app_publisher: str
+    app_license_total: int
+    app_license_consumed: int
+    app_assigned: bool
+
+
+def get_intune_app_licenses(
+    token: str, timeout: float, proxy: Optional[HTTPProxyConfig]
+) -> List[IntuneApp]:
     # only iosVppApp available in v1.0 (2024-07-17)
     intune_apps_url = (
-        "https://graph.microsoft.com/beta/deviceAppManagement/mobileApps?$filter=publishingState eq 'published'"
+        "https://graph.microsoft.com/beta/deviceAppManagement/mobileApps"
+        "?$filter=publishingState eq 'published'"
     )
 
-    headers = {"Accept": "application/json", "Authorization": "Bearer " + token}
+    headers = {"Accept": "application/json", "Authorization": f"Bearer {token}"}
 
     intune_apps = []
 
-    while True:
+    while intune_apps_url is not None:
         try:
-            intune_apps_response = requests.get(intune_apps_url, headers=headers)
+            intune_apps_response = requests.get(
+                intune_apps_url,
+                headers=headers,
+                timeout=timeout,
+                proxies=proxy.to_requests_proxies(),
+            )
             intune_apps_response.raise_for_status()
+        except requests.exceptions.Timeout as err:
+            handle_error(
+                err,
+                f"Timeout while getting Intune applications ({int(timeout)}s).",
+                12,
+            )
         except requests.exceptions.RequestException as err:
-            print(intune_apps_response.text)
-            sys.stderr.write("CRITICAL | Failed to get intune apps\n")
-            sys.stderr.write(f"Error: {err}\n")
-            sys.exit(2)
+            handle_error(
+                err,
+                "Failed to get Intune applications. Please check your connection configuration.",
+                2,
+            )
 
         intune_apps_json = intune_apps_response.json()
         intune_apps.extend(intune_apps_json.get("value", []))
 
-        next_link = intune_apps_json.get("@odata.nextLink")
-        if next_link:
-            intune_apps = next_link
-        else:
-            break
+        # get next page if available (pagination)
+        intune_apps_url = intune_apps_json.get("@odata.nextLink")
 
-    intune_app_licenses = [
-        app for app in intune_apps if app.get("totalLicenseCount")
-    ]
+    intune_app_licenses = [app for app in intune_apps if app.get("totalLicenseCount")]
 
-    app_list = []
-    for app in intune_app_licenses:
-        app_dict = {
+    app_list = [
+        {
             "app_assigned": app.get("isAssigned"),
             "app_license_consumed": app["usedLicenseCount"],
             "app_license_total": app["totalLicenseCount"],
@@ -143,13 +219,23 @@ def get_intune_app_licenses(token):
             "app_publisher": app.get("publisher"),
             "app_type": map_app_type(app["@odata.type"]),
         }
-
-        app_list.append(app_dict)
+        for app in intune_app_licenses
+    ]
 
     return app_list
 
 
-def get_intune_apple_ade_tokens(token):
+class AdeToken(TypedDict):
+    token_appleid: str
+    token_expiration: str
+    token_id: str
+    token_name: str
+    token_type: str
+
+
+def get_intune_apple_ade_tokens(
+    token: str, timeout: float, proxy: Optional[HTTPProxyConfig]
+) -> List[AdeToken]:
     # endpoint not available in v1.0 (2024-07-17)
     intune_ade_tokens_url = (
         "https://graph.microsoft.com/beta/deviceManagement/depOnboardingSettings"
@@ -160,45 +246,75 @@ def get_intune_apple_ade_tokens(token):
     headers = {"Accept": "application/json", "Authorization": "Bearer " + token}
 
     try:
-        intune_ade_tokens_response = requests.get(intune_ade_tokens_url, headers=headers)
+        intune_ade_tokens_response = requests.get(
+            intune_ade_tokens_url,
+            headers=headers,
+            timeout=timeout,
+            proxies=proxy.to_requests_proxies(),
+        )
         intune_ade_tokens_response.raise_for_status()
+    except requests.exceptions.Timeout as err:
+        handle_error(
+            err,
+            f"Timeout while getting Apple ADE tokens ({int(timeout)}s).",
+            13,
+        )
     except requests.exceptions.RequestException as err:
-        sys.stderr.write("CRITICAL | Failed to get ade tokens\n")
-        sys.stderr.write(f"Error: {err}\n")
-        sys.exit(3)
+        handle_error(
+            err, "Failed to get Apple ADE tokens. Please check your connection configuration.", 3
+        )
 
     intune_ade_tokens = intune_ade_tokens_response.json().get("value", [])
 
-    ade_token_list = []
-    for ade_token in intune_ade_tokens:
-        ade_token_dict = {
-            "token_appleid": ade_token["appleIdentifier"],
-            "token_expiration": ade_token["tokenExpirationDateTime"],
-            "token_id": ade_token["id"],
-            "token_name": ade_token["tokenName"],
-            "token_type": ade_token["tokenType"],
+    ade_token_list = [
+        {
+            "token_appleid": token["appleIdentifier"],
+            "token_expiration": token["tokenExpirationDateTime"],
+            "token_id": token["id"],
+            "token_name": token["tokenName"],
+            "token_type": token["tokenType"],
         }
-
-        ade_token_list.append(ade_token_dict)
+        for token in intune_ade_tokens
+    ]
 
     return ade_token_list
 
 
-def get_intune_apple_mdm_push_cert(token):
-    intune_cert_url = "https://graph.microsoft.com/v1.0/deviceManagement/applePushNotificationCertificate"
+class ApplePushCert(TypedDict):
+    cert_appleid: str
+    cert_expiration: str
+
+
+def get_intune_apple_mdm_push_cert(
+    token: str, timeout: float, proxy: Optional[HTTPProxyConfig]
+) -> ApplePushCert:
+    intune_cert_url = (
+        "https://graph.microsoft.com/v1.0/deviceManagement/applePushNotificationCertificate"
+    )
 
     headers = {"Accept": "application/json", "Authorization": "Bearer " + token}
 
     try:
-        intune_cert_response = requests.get(intune_cert_url, headers=headers)
+        intune_cert_response = requests.get(
+            intune_cert_url, headers=headers, timeout=timeout, proxies=proxy.to_requests_proxies()
+        )
         intune_cert_response.raise_for_status()
+    except requests.exceptions.Timeout as err:
+        handle_error(
+            err,
+            f"Timeout while getting Apple push certificate ({int(timeout)}s).",
+            14,
+        )
     except requests.exceptions.RequestException as err:
         # if no certificate configured, then the request responds with 404
         if intune_cert_response.status_code == 404:
-            return
-        sys.stderr.write("CRITICAL | Failed to get certificate\n")
-        sys.stderr.write(f"Error: {err}\n")
-        sys.exit(4)
+            return {}
+
+        handle_error(
+            err,
+            "Failed to get Apple push certificate. Please check your connection configuration.",
+            4,
+        )
 
     intune_cert_json = intune_cert_response.json()
 
@@ -210,7 +326,17 @@ def get_intune_apple_mdm_push_cert(token):
     return intune_cert
 
 
-def get_intune_apple_vpp_tokens(token):
+class AppleVppToken(TypedDict):
+    token_appleid: str
+    token_expiration: str
+    token_id: str
+    token_name: str
+    token_state: str
+
+
+def get_intune_apple_vpp_tokens(
+    token: str, timeout: float, proxy: Optional[HTTPProxyConfig]
+) -> List[AppleVppToken]:
     # displayName not available in v1.0 (2024-07-17)
     intune_vpp_tokens_url = (
         "https://graph.microsoft.com/beta/deviceAppManagement/vppTokens"
@@ -221,57 +347,91 @@ def get_intune_apple_vpp_tokens(token):
     headers = {"Accept": "application/json", "Authorization": "Bearer " + token}
 
     try:
-        intune_vpp_tokens_response = requests.get(intune_vpp_tokens_url, headers=headers)
+        intune_vpp_tokens_response = requests.get(
+            intune_vpp_tokens_url,
+            headers=headers,
+            timeout=timeout,
+            proxies=proxy.to_requests_proxies(),
+        )
         intune_vpp_tokens_response.raise_for_status()
+    except requests.exceptions.Timeout as err:
+        handle_error(
+            err,
+            f"Timeout while getting Apple VPP tokens ({int(timeout)}s).",
+            15,
+        )
     except requests.exceptions.RequestException as err:
-        sys.stderr.write("CRITICAL | Failed to get vpp tokens\n")
-        sys.stderr.write(f"Error: {err}\n")
-        sys.exit(5)
+        handle_error(
+            err, "Failed to get Apple VPP tokens. Please check your connection configuration.", 5
+        )
 
     intune_vpp_tokens = intune_vpp_tokens_response.json().get("value", [])
 
-    vpp_token_list = []
-    for vpp_token in intune_vpp_tokens:
-        vpp_token_dict = {
-            "token_appleid": vpp_token["appleId"],
-            "token_expiration": vpp_token["expirationDateTime"],
-            "token_id": vpp_token["id"],
-            "token_name": vpp_token["displayName"],
-            "token_state": vpp_token["state"],
+    vpp_token_list = [
+        {
+            "token_appleid": token["appleId"],
+            "token_expiration": token["expirationDateTime"],
+            "token_id": token["id"],
+            "token_name": token["displayName"],
+            "token_state": token["state"],
         }
-
-        vpp_token_list.append(vpp_token_dict)
+        for token in intune_vpp_tokens
+    ]
 
     return vpp_token_list
 
 
-def get_intune_cert_connectors(token):
+class CertConnector(TypedDict):
+    connector_connection_last: str
+    connector_id: str
+    connector_name: str
+    connector_state: str
+    connector_version: str
+
+
+def get_intune_cert_connectors(
+    token: str, timeout: float, proxy: Optional[HTTPProxyConfig]
+) -> List[CertConnector]:
     # endpoint not available in v1.0 (2024-07-17)
-    intune_cert_connectors_url = "https://graph.microsoft.com/beta/deviceManagement/ndesConnectors?&$orderby=id"
+    intune_cert_connectors_url = (
+        "https://graph.microsoft.com/beta/deviceManagement/ndesConnectors?&$orderby=id"
+    )
 
     headers = {"Accept": "application/json", "Authorization": "Bearer " + token}
 
     try:
-        intune_cert_connectors_response = requests.get(intune_cert_connectors_url, headers=headers)
+        intune_cert_connectors_response = requests.get(
+            intune_cert_connectors_url,
+            headers=headers,
+            timeout=timeout,
+            proxies=proxy.to_requests_proxies(),
+        )
         intune_cert_connectors_response.raise_for_status()
+    except requests.exceptions.Timeout as err:
+        handle_error(
+            err,
+            f"Timeout while getting certificate connectors ({int(timeout)}s).",
+            16,
+        )
     except requests.exceptions.RequestException as err:
-        sys.stderr.write("CRITICAL | Failed to get certificate connectors\n")
-        sys.stderr.write(f"Error: {err}\n")
-        sys.exit(6)
+        handle_error(
+            err,
+            "Failed to get certificate connectors. Please check your connection configuration.",
+            6,
+        )
 
     intune_cert_connectors = intune_cert_connectors_response.json().get("value", [])
 
-    connectors_list = []
-    for connector in intune_cert_connectors:
-        connectors_dict = {
+    connectors_list = [
+        {
             "connector_connection_last": connector["lastConnectionDateTime"],
             "connector_id": connector["id"],
             "connector_name": connector["displayName"],
             "connector_state": connector["state"],
             "connector_version": connector["connectorVersion"],
         }
-
-        connectors_list.append(connectors_dict)
+        for connector in intune_cert_connectors
+    ]
 
     return connectors_list
 
@@ -280,41 +440,43 @@ def main():
     args = parse_arguments()
     tenant_id = args.tenant_id
     app_id = args.app_id
+    proxy = deserialize_http_proxy_config(args.proxy)
     services_to_monitor = args.services_to_monitor.split(",") if args.services_to_monitor else None
+    timeout = args.timeout
 
     pw_id, pw_path = args.app_secret.split(":")
     app_secret = cmk.utils.password_store.lookup(Path(pw_path), pw_id)
 
     resource_scope = "https://graph.microsoft.com/.default"
 
-    token = get_access_token(tenant_id, app_id, app_secret, resource_scope)
+    token = get_access_token(tenant_id, app_id, app_secret, resource_scope, timeout, proxy)
 
     if "app_licenses" in services_to_monitor:
-        intune_app_licenses = get_intune_app_licenses(token)
+        intune_app_licenses = get_intune_app_licenses(token, timeout, proxy)
         if intune_app_licenses:
             print("<<<ms_intune_app_licenses:sep(0)>>>")
             print(json.dumps(intune_app_licenses))
 
     if "apple_ade_tokens" in services_to_monitor:
-        intune_apple_ade_tokens = get_intune_apple_ade_tokens(token)
+        intune_apple_ade_tokens = get_intune_apple_ade_tokens(token, timeout, proxy)
         if intune_apple_ade_tokens:
             print("<<<ms_intune_apple_ade_tokens:sep(0)>>>")
             print(json.dumps(intune_apple_ade_tokens))
 
     if "apple_mdm_push_cert" in services_to_monitor:
-        intune_apple_cert = get_intune_apple_mdm_push_cert(token)
+        intune_apple_cert = get_intune_apple_mdm_push_cert(token, timeout, proxy)
         if intune_apple_cert:
             print("<<<ms_intune_apple_mdm_push_cert:sep(0)>>>")
             print(json.dumps(intune_apple_cert))
 
     if "vpp_tokens" in services_to_monitor:
-        intune_apple_vpp_tokens = get_intune_apple_vpp_tokens(token)
+        intune_apple_vpp_tokens = get_intune_apple_vpp_tokens(token, timeout, proxy)
         if intune_apple_vpp_tokens:
             print("<<<ms_intune_apple_vpp_tokens:sep(0)>>>")
             print(json.dumps(intune_apple_vpp_tokens))
 
     if "cert_connectors" in services_to_monitor:
-        intune_cert_connectors = get_intune_cert_connectors(token)
+        intune_cert_connectors = get_intune_cert_connectors(token, timeout, proxy)
         if intune_cert_connectors:
             print("<<<ms_intune_cert_connectors:sep(0)>>>")
             print(json.dumps(intune_cert_connectors))

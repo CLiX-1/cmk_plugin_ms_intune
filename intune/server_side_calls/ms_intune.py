@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- encoding: utf-8; py-indent-offset: 4 -*-
+# -*- coding: utf-8; py-indent-offset: 4; max-line-length: 100 -*-
 
 # Copyright (C) 2024  Christopher Pommer <cp.software@outlook.de>
 
@@ -18,14 +18,22 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
-from collections.abc import Iterator, Sequence
+####################################################################################################
+# This is part of the Checkmk special agent for monitoring Microsoft Intune services.
+# It builds the configuration parameters for the special agent call.
+
+
 from pydantic import BaseModel
+from typing import Optional, Iterator, List
 
 from cmk.server_side_calls.v1 import (
+    EnvProxy,
     HostConfig,
+    NoProxy,
     Secret,
     SpecialAgentCommand,
     SpecialAgentConfig,
+    URLProxy,
 )
 
 
@@ -33,30 +41,42 @@ class Params(BaseModel):
     tenant_id: str
     app_id: str
     app_secret: Secret
-    services_to_monitor: Sequence[str] = []
+    proxy: Optional[URLProxy | NoProxy | EnvProxy] = None
+    services_to_monitor: List[str]
+    timeout: Optional[float] = 10.0
 
 
-def commands_function(
+def generate_special_agent_commands(
     params: Params,
     _host_config: HostConfig,
 ) -> Iterator[SpecialAgentCommand]:
-    args: Sequence[str | Secret] = [
+    args: List[str | Secret] = [
         "--tenant-id",
         params.tenant_id,
         "--app-id",
         params.app_id,
         "--app-secret",
         params.app_secret,
+        "--services-to-monitor",
+        ",".join(params.services_to_monitor),
+        "--timeout",
+        str(params.timeout),
     ]
 
-    if params.services_to_monitor:
-        args += ["--services-to-monitor", ",".join(params.services_to_monitor)]
+    if params.proxy:
+        match params.proxy:
+            case URLProxy(url):
+                args += ["--proxy", url]
+            case EnvProxy():
+                args += ["--proxy", "FROM_ENVIRONMENT"]
+            case NoProxy():
+                args += ["--proxy", "NO_PROXY"]
 
     yield SpecialAgentCommand(command_arguments=args)
 
 
-special_agent_ms_intune = SpecialAgentConfig(
+special_agent_ms_entra = SpecialAgentConfig(
     name="ms_intune",
     parameter_parser=Params.model_validate,
-    commands_function=commands_function,
+    commands_function=generate_special_agent_commands,
 )
