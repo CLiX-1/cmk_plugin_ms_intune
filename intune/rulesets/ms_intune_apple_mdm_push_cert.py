@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- encoding: utf-8; py-indent-offset: 4 -*-
+# -*- coding: utf-8; py-indent-offset: 4; max-line-length: 100 -*-
 
 # Copyright (C) 2024  Christopher Pommer <cp.software@outlook.de>
 
@@ -16,6 +16,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+
+####################################################################################################
+# Checkmk ruleset to set the expiration time thresholds for the Apple MDM push certificate.
+# This ruleset is part of the Microsoft Intune special agent (ms_intune).
 
 
 from cmk.rulesets.v1 import Help, Title
@@ -44,8 +49,8 @@ def _parameter_form_ms_intune_apple_push_cert() -> Dictionary:
                 parameter_form=SimpleLevels[float](
                     title=Title("Certificate expiration"),
                     help_text=Help(
-                        "Specify the lower levels for the Apple MDM push certificate expiration time. "
-                        "The default values are 14 days (WARN) and 5 days (CRIT). "
+                        "Specify the lower levels for the Apple MDM push certificate expiration "
+                        "time. The default values are 14 days (WARN) and 5 days (CRIT). "
                         "To ignore the certificate expiration, select 'No levels'."
                     ),
                     form_spec_template=TimeSpan(

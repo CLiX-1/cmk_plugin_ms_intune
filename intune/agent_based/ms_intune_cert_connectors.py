@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- encoding: utf-8; py-indent-offset: 4 -*-
+# -*- coding: utf-8; py-indent-offset: 4; max-line-length: 100 -*-
 
 # Copyright (C) 2024  Christopher Pommer <cp.software@outlook.de>
 
@@ -18,8 +18,26 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
+####################################################################################################
+# Checkmk check plugin for monitoring the certificate connectors from Microsoft Intune.
+# The plugin works with data from the Microsoft Intune Special Agent (ms_intune).
+
+# Example data from special agent:
+# <<<ms_intune_cert_connectors:sep(0)>>>
+# [
+#     {
+#         "connector_connection_last": "1970-00-00T01:00:00.0000000Z",
+#         "connector_id": "00000000-0000-0000-0000-000000000000",
+#         "connector_name": "Connector1",
+#         "connector_state": "active",
+#         "connector_version": "6.2301.1.0"
+#     },
+#     ...
+# ]
+
+
 import json
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -37,7 +55,7 @@ from cmk.agent_based.v2 import (
 
 
 @dataclass(frozen=True)
-class ConnectorInfo:
+class CertConnector:
     connector_connection_last: str
     connector_id: str
     connector_name: str
@@ -45,20 +63,7 @@ class ConnectorInfo:
     connector_version: str
 
 
-Section = Mapping[str, Sequence[ConnectorInfo]]
-
-# Example data from special agent:
-# <<<ms_intune_cert_connectors:sep(0)>>>
-# [
-#     {
-#         "connector_connection_last": "2024-05-18T21:33:26.1092739Z",
-#         "connector_id": "00000000-0000-0000-0000-000000000000",
-#         "connector_name": "Connector1",
-#         "connector_state": "active",
-#         "connector_version": "6.2301.1.0"
-#     },
-#     ...
-# ]
+Section = Mapping[str, CertConnector]
 
 
 def parse_ms_intune_cert_connectors(string_table: StringTable) -> Section:
@@ -68,12 +73,12 @@ def parse_ms_intune_cert_connectors(string_table: StringTable) -> Section:
         connector_name = item["connector_name"]
         # generate unique names, because connector name is not unique
         if connector_name in connector_names:
-            connector_name_unique = f"{connector_name} {item["connector_id"][-4:]}"
+            connector_name_unique = f"{connector_name} {item['connector_id'][-4:]}"
         else:
             connector_name_unique = connector_name
             connector_names.add(connector_name)
 
-        parsed[connector_name_unique] = item
+        parsed[connector_name_unique] = CertConnector(**item)
 
     return parsed
 
@@ -88,27 +93,23 @@ def check_ms_intune_cert_connectors(item: str, section: Section) -> CheckResult:
     if not connector:
         return
 
-    connector_connection_last = connector["connector_connection_last"]
-    connector_id = connector["connector_id"]
-    connector_name = connector["connector_name"]
-    connector_state = connector["connector_state"]
-    connector_version = connector["connector_version"]
-
-    connector_connection_last_datetime = datetime.fromisoformat(connector_connection_last)
+    connector_connection_last_datetime = datetime.fromisoformat(connector.connector_connection_last)
     connector_connection_last_timestamp = connector_connection_last_datetime.timestamp()
-    connector_connection_last_timestamp_render = render.datetime(int(connector_connection_last_timestamp))
-
-    result_summary = f"State: {connector_state}"
-
-    result_details = (
-        f"Connector name: {connector_name}"
-        f"\\nConnector ID: {connector_id}"
-        f"\\nConnector version: {connector_version}"
-        f"\\nLast connected: {connector_connection_last_timestamp_render}"
-        f"\\nState: {connector_state}"
+    connector_connection_last_timestamp_render = render.datetime(
+        int(connector_connection_last_timestamp)
     )
 
-    if connector_state != "active":
+    result_summary = f"State: {connector.connector_state}"
+
+    result_details = (
+        f"Connector name: {connector.connector_name}"
+        f"\nConnector ID: {connector.connector_id}"
+        f"\nConnector version: {connector.connector_version}"
+        f"\nLast connected: {connector_connection_last_timestamp_render}"
+        f"\nState: {connector.connector_state}"
+    )
+
+    if connector.connector_state != "active":
         yield Result(
             state=State.CRIT,
             summary=result_summary,

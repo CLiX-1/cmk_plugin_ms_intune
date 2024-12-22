@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- encoding: utf-8; py-indent-offset: 4 -*-
+# -*- coding: utf-8; py-indent-offset: 4; max-line-length: 100 -*-
 
 # Copyright (C) 2024  Christopher Pommer <cp.software@outlook.de>
 
@@ -16,6 +16,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+
+####################################################################################################
+# Checkmk ruleset to set thresholds for the count of available Microsoft Intune app licenses.
+# This ruleset is part of the Microsoft Intune special agent (ms_intune).
 
 
 from cmk.rulesets.v1 import Help, Title
@@ -38,17 +43,18 @@ def _parameter_form_ms_intune_app_licenses() -> Dictionary:
     return Dictionary(
         title=Title("Intune App Licenses"),
         help_text=Help(
-            "Check parameters for the Microsoft Intune app licenses. Each app can have its own set of parameters. "
-            "To use this service, you need to set up the <b>Microsoft Intune</b> special agent."
+            "Check parameters for the Microsoft Intune app licenses. Each app can have its own set "
+            "of parameters. To use this service, you need to set up the <b>Microsoft Intune</b> "
+            "special agent."
         ),
         elements={
             "lic_unit_available_lower": DictElement(
                 parameter_form=CascadingSingleChoice(
                     title=Title("Licenses lower levels"),
                     help_text=Help(
-                        "Set lower-level thresholds for the number of remaining available "
-                        "app licenses as absolute or percentage values. "
-                        'To ignore the remaining available licenses, Select "Percentage" or "Absolute" and "No levels".'
+                        "Set lower-level thresholds for the number of remaining available app "
+                        "licenses as absolute or percentage values. To ignore the remaining "
+                        'available licenses, Select "Percentage" or "Absolute" and "No levels".'
                     ),
                     elements=[
                         CascadingSingleChoiceElement(
@@ -77,8 +83,9 @@ def _parameter_form_ms_intune_app_licenses() -> Dictionary:
                 parameter_form=Integer(
                     title=Title("Activate thresholds at total licenses"),
                     help_text=Help(
-                        "Set the total number of licenses at which the thresholds will be calclulated. "
-                        "If the number of licenses is less, then the thresholds will be ignored."
+                        "Set the total number of licenses at which the thresholds will be "
+                        "calclulated. If the number of licenses is less, then the "
+                        "thresholds will be ignored."
                     ),
                     prefill=DefaultValue(1),
                 ),

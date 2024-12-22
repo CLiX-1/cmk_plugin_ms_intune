@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- encoding: utf-8; py-indent-offset: 4 -*-
+# -*- coding: utf-8; py-indent-offset: 4; max-line-length: 100 -*-
 
 # Copyright (C) 2024  Christopher Pommer <cp.software@outlook.de>
 
@@ -18,8 +18,20 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
+####################################################################################################
+# Checkmk check plugin for monitoring the Apple MDM push certificate from Microsoft Intune.
+# The plugin works with data from the Microsoft Intune Special Agent (ms_intune).
+
+# Example data from special agent:
+# <<<ms_intune_apple_mdm_push_cert:sep(0)>>>
+# {
+#     "cert_appleid": "mail@domain.de",
+#     "cert_expiration": "1970-00-00T01:00:00Z"
+# }
+
+
 import json
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
@@ -39,24 +51,17 @@ from cmk.agent_based.v2 import (
 
 
 @dataclass(frozen=True)
-class CertInfo:
+class ApplePushCert:
     cert_appleid: str
     cert_expiration: str
 
 
-Section = Sequence[CertInfo]
-
-# Example data from special agent:
-# <<<ms_intune_apple_mdm_push_cert:sep(0)>>>
-# {
-#     "cert_appleid": "mail@domain.de",
-#     "cert_expiration": "2000-01-01T00:00:00Z"
-# }
+Section = ApplePushCert
 
 
 def parse_ms_intune_apple_mdm_push_cert(string_table: StringTable) -> Section:
     parsed = json.loads(string_table[0][0])
-    return parsed
+    return ApplePushCert(**parsed)
 
 
 def discover_ms_intune_apple_mdm_push_cert(section: Section) -> DiscoveryResult:
@@ -64,12 +69,10 @@ def discover_ms_intune_apple_mdm_push_cert(section: Section) -> DiscoveryResult:
 
 
 def check_ms_intune_apple_mdm_push_cert(params: Mapping[str, Any], section: Section) -> CheckResult:
-    cert_appleid = section["cert_appleid"]
-    cert_expiration = section["cert_expiration"]
-
+    cert = section
     params_levels_cert_expiration = params.get("cert_expiration")
 
-    cert_expiration_datetime = datetime.fromisoformat(cert_expiration)
+    cert_expiration_datetime = datetime.fromisoformat(cert.cert_expiration)
     cert_expiration_timestamp = cert_expiration_datetime.timestamp()
     cert_expiration_timestamp_render = render.datetime(int(cert_expiration_timestamp))
 
@@ -87,13 +90,16 @@ def check_ms_intune_apple_mdm_push_cert(params: Mapping[str, Any], section: Sect
             cert_expiration_timespan,
             levels_lower=(params_levels_cert_expiration),
             label="Expired",
-            render_func=lambda x: "%s ago" % render.timespan(abs(x)),
+            render_func=lambda x: f"{render.timespan(abs(x))} ago",
         )
 
     yield Result(
         state=State.OK,
         summary=f"Expiration time: {cert_expiration_timestamp_render}",
-        details=f"Expiration time: {cert_expiration_timestamp_render}\\n Apple ID: {cert_appleid}",
+        details=(
+            f"Expiration time: {cert_expiration_timestamp_render}\n"
+            f"Apple ID: {cert.cert_appleid}"
+        ),
     )
 
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- encoding: utf-8; py-indent-offset: 4 -*-
+# -*- coding: utf-8; py-indent-offset: 4; max-line-length: 100 -*-
 
 # Copyright (C) 2024  Christopher Pommer <cp.software@outlook.de>
 
@@ -18,36 +18,9 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
-import json
-from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
-from typing import Any
-
-from cmk.agent_based.v2 import (
-    AgentSection,
-    CheckPlugin,
-    CheckResult,
-    DiscoveryResult,
-    Metric,
-    render,
-    Result,
-    Service,
-    State,
-    StringTable,
-)
-
-
-@dataclass(frozen=True)
-class IntuneApps:
-    app_type: str
-    app_name: str
-    app_publisher: str
-    app_license_total: int
-    app_license_consumed: int
-    app_assigned: bool
-
-
-Section = Mapping[str, Sequence[IntuneApps]]
+####################################################################################################
+# Checkmk check plugin for monitoring the app licenses from Microsoft Intune.
+# The plugin works with data from the Microsoft Intune Special Agent (ms_intune).
 
 # Example data from special agent:
 # <<<ms_intune_app_licenses:sep(0)>>>
@@ -72,10 +45,43 @@ Section = Mapping[str, Sequence[IntuneApps]]
 # ]
 
 
+import json
+from collections.abc import Mapping
+from dataclasses import dataclass
+from typing import Any
+
+from cmk.agent_based.v2 import (
+    AgentSection,
+    CheckPlugin,
+    CheckResult,
+    DiscoveryResult,
+    Metric,
+    render,
+    Result,
+    Service,
+    State,
+    StringTable,
+)
+
+
+@dataclass(frozen=True)
+class IntuneApp:
+    app_type: str
+    app_name: str
+    app_publisher: str
+    app_license_total: int
+    app_license_consumed: int
+    app_assigned: bool
+
+
+Section = Mapping[str, IntuneApp]
+
+
 def parse_ms_intune_app_licenses(string_table: StringTable) -> Section:
     parsed = {}
     for item in json.loads("".join(string_table[0])):
-        parsed[item["app_name"] + " - " + item["app_type"]] = item
+        service_name = f"{item['app_name']} - {item['app_type']}"
+        parsed[service_name] = IntuneApp(**item)
     return parsed
 
 
@@ -84,34 +90,31 @@ def discover_ms_intune_app_licenses(section: Section) -> DiscoveryResult:
         yield Service(item=group)
 
 
-def check_ms_intune_app_licenses(item: str, params: Mapping[str, Any], section: Section) -> CheckResult:
+def check_ms_intune_app_licenses(
+    item: str, params: Mapping[str, Any], section: Section
+) -> CheckResult:
     license = section.get(item)
     if not license:
         return
 
-    app_name = license["app_name"]
-    app_type = license["app_type"]
-    app_publisher = license["app_publisher"]
-    app_license_total = license["app_license_total"]
-    app_license_consumed = license["app_license_consumed"]
-    app_assigned = license["app_assigned"]
-
-    app_license_consumed_pct = round(app_license_consumed / app_license_total * 100, 2)
-    lic_units_available = app_license_total - app_license_consumed
+    app_license_consumed_pct = round(
+        license.app_license_consumed / license.app_license_total * 100, 2
+    )
+    lic_units_available = license.app_license_total - license.app_license_consumed
 
     result_level = ""
     result_state = State.OK
     levels_consumed_abs = (None, None)
     levels_consumed_pct = (None, None)
     params_lic_total_min = params["lic_total_min"]
-    if app_license_total >= params_lic_total_min:
+    if license.app_license_total >= params_lic_total_min:
         params_levels_available = params["lic_unit_available_lower"]
         if params_levels_available[1][0] == "fixed":
             warning_level, critical_level = params_levels_available[1][1]
 
             if params_levels_available[0] == "lic_unit_available_lower_pct":
                 levels_consumed_pct = (100 - warning_level, 100 - critical_level)
-                available_percent = lic_units_available / app_license_total * 100
+                available_percent = lic_units_available / license.app_license_total * 100
 
                 if available_percent < critical_level:
                     result_state = State.CRIT
@@ -119,28 +122,34 @@ def check_ms_intune_app_licenses(item: str, params: Mapping[str, Any], section: 
                     result_state = State.WARN
 
                 result_level = (
-                    f" (warn/crit below {render.percent(warning_level)}/{render.percent(critical_level)} available)"
+                    f" (warn/crit below {render.percent(warning_level)}/"
+                    f"{render.percent(critical_level)} available)"
                 )
 
             else:
-                levels_consumed_abs = (app_license_total - warning_level, app_license_total - critical_level)
+                levels_consumed_abs = (
+                    license.app_license_total - warning_level,
+                    license.app_license_total - critical_level,
+                )
 
-                if app_license_consumed > levels_consumed_abs[1]:
+                if license.app_license_consumed > levels_consumed_abs[1]:
                     result_state = State.CRIT
-                elif app_license_consumed > levels_consumed_abs[0]:
+                elif license.app_license_consumed > levels_consumed_abs[0]:
                     result_state = State.WARN
 
                 result_level = f" (warn/crit below {warning_level}/{critical_level} available)"
 
     result_summary = (
-        f"Consumed: {render.percent(app_license_consumed_pct)} - {app_license_consumed} of {app_license_total}"
+        f"Consumed: {render.percent(app_license_consumed_pct)} - "
+        f"{license.app_license_consumed} of {license.app_license_total}"
         f", Available: {lic_units_available}"
         f"{result_level}"
     )
 
     result_details = (
-        f"App: {app_name} ({app_publisher})\n - Type: {app_type}\n - Assigned: {app_assigned}"
-        f"\n - Total: {app_license_total}\n - Used: {app_license_consumed}"
+        f"App: {license.app_name} ({license.app_publisher})\n - Type: {license.app_type}\n - "
+        f"Assigned: {license.app_assigned}"
+        f"\n - Total: {license.app_license_total}\n - Used: {license.app_license_consumed}"
     )
 
     yield Result(
@@ -149,9 +158,17 @@ def check_ms_intune_app_licenses(item: str, params: Mapping[str, Any], section: 
         details=result_details,
     )
 
-    yield Metric(name="ms_intune_app_licenses_total", value=app_license_total)
-    yield Metric(name="ms_intune_app_licenses_consumed", value=app_license_consumed, levels=levels_consumed_abs)
-    yield Metric(name="ms_intune_app_licenses_consumed_pct", value=app_license_consumed_pct, levels=levels_consumed_pct)
+    yield Metric(name="ms_intune_app_licenses_total", value=license.app_license_total)
+    yield Metric(
+        name="ms_intune_app_licenses_consumed",
+        value=license.app_license_consumed,
+        levels=levels_consumed_abs,
+    )
+    yield Metric(
+        name="ms_intune_app_licenses_consumed_pct",
+        value=app_license_consumed_pct,
+        levels=levels_consumed_pct,
+    )
     yield Metric(name="ms_intune_app_licenses_available", value=lic_units_available)
 
 

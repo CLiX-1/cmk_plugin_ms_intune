@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- encoding: utf-8; py-indent-offset: 4 -*-
+# -*- coding: utf-8; py-indent-offset: 4; max-line-length: 100 -*-
 
 # Copyright (C) 2024  Christopher Pommer <cp.software@outlook.de>
 
@@ -18,8 +18,26 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
+####################################################################################################
+# Checkmk check plugin for monitoring thec Apple Automated Device Enrollment (ADE) tokens from
+# Microsoft Intune. The plugin works with data from the Microsoft Intune Special Agent (ms_intune).
+
+# Example data from special agent:
+# <<<ms_intune_apple_ade_tokens:sep(0)>>>
+# [
+#     {
+#         "token_appleid": "ade@domain.td",
+#         "token_expiration": "1970-00-00T01:00:00Z",
+#         "token_id": "00000000-0000-0000-0000-000000000000",
+#         "token_name": "Apple Business Manager",
+#         "token_type": "dep"
+#     },
+#     ...
+# ]
+
+
 import json
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
@@ -39,7 +57,7 @@ from cmk.agent_based.v2 import (
 
 
 @dataclass(frozen=True)
-class TokenInfo:
+class AdeToken:
     token_appleid: str
     token_expiration: str
     token_id: str
@@ -47,20 +65,7 @@ class TokenInfo:
     token_type: str
 
 
-# Example data from special agent:
-# <<<ms_intune_apple_ade_tokens:sep(0)>>>
-# [
-#     {
-#         "token_appleid": "ade@domain.td",
-#         "token_expiration": "2025-03-02T06:54:05Z",
-#         "token_id": "00000000-0000-0000-0000-000000000000",
-#         "token_name": "Apple Business Manager",
-#         "token_type": "dep"
-#     },
-#     ...
-# ]
-
-Section = Mapping[str, Sequence[TokenInfo]]
+Section = Mapping[str, AdeToken]
 
 
 def parse_ms_intune_apple_ade_tokens(string_table: StringTable) -> Section:
@@ -70,12 +75,12 @@ def parse_ms_intune_apple_ade_tokens(string_table: StringTable) -> Section:
         token_name = item["token_name"]
         # generate unique names, because token name is not unique
         if token_name in token_names:
-            token_name_unique = f"{token_name} {item["token_id"][-4:]}"
+            token_name_unique = f"{token_name} {item['token_id'][-4:]}"
         else:
             token_name_unique = token_name
             token_names.add(token_name)
 
-        parsed[token_name_unique] = item
+        parsed[token_name_unique] = AdeToken(**item)
 
     return parsed
 
@@ -85,20 +90,16 @@ def discover_ms_intune_apple_ade_tokens(section: Section) -> DiscoveryResult:
         yield Service(item=group)
 
 
-def check_ms_intune_apple_ade_tokens(item: str, params: Mapping[str, Any], section: Section) -> CheckResult:
+def check_ms_intune_apple_ade_tokens(
+    item: str, params: Mapping[str, Any], section: Section
+) -> CheckResult:
     token = section.get(item)
     if not token:
         return
 
     params_levels_token_expiration = params.get("token_expiration")
 
-    token_appleid = token["token_appleid"]
-    token_expiration = token["token_expiration"]
-    token_id = token["token_id"]
-    token_name = token["token_name"]
-    token_type = token["token_type"]
-
-    token_expiration_datetime = datetime.fromisoformat(token_expiration)
+    token_expiration_datetime = datetime.fromisoformat(token.token_expiration)
     token_expiration_timestamp = token_expiration_datetime.timestamp()
     token_expiration_timestamp_render = render.datetime(int(token_expiration_timestamp))
 
@@ -106,10 +107,10 @@ def check_ms_intune_apple_ade_tokens(item: str, params: Mapping[str, Any], secti
 
     result_details = (
         f"Expiration time: {token_expiration_timestamp_render}"
-        f"\\nToken name: {token_name}"
-        f"\\nToken ID: {token_id}"
-        f"\\nToken type: {token_type}"
-        f"\\nApple ID: {token_appleid}"
+        f"\nToken name: {token.token_name}"
+        f"\nToken ID: {token.token_id}"
+        f"\nToken type: {token.token_type}"
+        f"\nApple ID: {token.token_appleid}"
     )
     result_summary = f"Expiration time: {token_expiration_timestamp_render}"
 
@@ -125,7 +126,7 @@ def check_ms_intune_apple_ade_tokens(item: str, params: Mapping[str, Any], secti
             token_expiration_timespan,
             levels_lower=(params_levels_token_expiration),
             label="Expired",
-            render_func=lambda x: "%s ago" % render.timespan(abs(x)),
+            render_func=lambda x: f"{render.timespan(abs(x))} ago",
         )
 
     yield Result(
