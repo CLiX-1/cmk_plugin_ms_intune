@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8; py-indent-offset: 4; max-line-length: 100 -*-
 
-# Copyright (C) 2025  Christopher Pommer <cp.software@outlook.de>
+# Copyright (C) 2024, 2025  Christopher Pommer <cp.software@outlook.de>
 
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -72,9 +72,8 @@ def check_ms_intune_apple_mdm_push_cert(params: Mapping[str, Any], section: Sect
     cert = section
     params_levels_cert_expiration = params.get("cert_expiration")
 
-    cert_expiration_datetime = datetime.fromisoformat(cert.cert_expiration)
-    cert_expiration_timestamp = cert_expiration_datetime.timestamp()
-    cert_expiration_timestamp_render = render.datetime(int(cert_expiration_timestamp))
+    cert_expiration_timestamp = datetime.fromisoformat(cert.cert_expiration).timestamp()
+    cert_expiration_timestamp_render = render.datetime(cert_expiration_timestamp)
 
     cert_expiration_timespan = cert_expiration_timestamp - datetime.now().timestamp()
 

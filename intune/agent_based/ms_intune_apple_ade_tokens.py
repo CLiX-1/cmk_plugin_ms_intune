@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8; py-indent-offset: 4; max-line-length: 100 -*-
 
-# Copyright (C) 2025  Christopher Pommer <cp.software@outlook.de>
+# Copyright (C) 2024, 2025  Christopher Pommer <cp.software@outlook.de>
 
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -94,25 +94,24 @@ def check_ms_intune_apple_ade_tokens(
     item: str, params: Mapping[str, Any], section: Section
 ) -> CheckResult:
     token = section.get(item)
-    if not token:
+    if token is None:
         return
 
     params_levels_token_expiration = params.get("token_expiration")
 
-    token_expiration_datetime = datetime.fromisoformat(token.token_expiration)
-    token_expiration_timestamp = token_expiration_datetime.timestamp()
-    token_expiration_timestamp_render = render.datetime(int(token_expiration_timestamp))
+    token_expiration_timestamp = datetime.fromisoformat(token.token_expiration).timestamp()
+    token_expiration_timestamp_render = render.datetime(token_expiration_timestamp)
 
     token_expiration_timespan = token_expiration_timestamp - datetime.now().timestamp()
 
-    result_details = (
-        f"Expiration time: {token_expiration_timestamp_render}"
-        f"\nToken name: {token.token_name}"
-        f"\nToken ID: {token.token_id}"
-        f"\nToken type: {token.token_type}"
-        f"\nApple ID: {token.token_appleid}"
-    )
-    result_summary = f"Expiration time: {token_expiration_timestamp_render}"
+    token_details_list = [
+        f"Expiration time: {token_expiration_timestamp_render}",
+        f"Token name: {token.token_name}",
+        f"Token ID: {token.token_id}",
+        f"Token type: {token.token_type}",
+        f"Apple ID: {token.token_appleid}",
+    ]
+    result_details = "\n".join(token_details_list)
 
     if token_expiration_timespan > 0:
         yield from check_levels(
@@ -131,7 +130,7 @@ def check_ms_intune_apple_ade_tokens(
 
     yield Result(
         state=State.OK,
-        summary=result_summary,
+        summary=f"Expiration time: {token_expiration_timestamp_render}",
         details=result_details,
     )
 

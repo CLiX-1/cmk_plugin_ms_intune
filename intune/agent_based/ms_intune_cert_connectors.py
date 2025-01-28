@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8; py-indent-offset: 4; max-line-length: 100 -*-
 
-# Copyright (C) 2025  Christopher Pommer <cp.software@outlook.de>
+# Copyright (C) 2024, 2025  Christopher Pommer <cp.software@outlook.de>
 
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -90,24 +90,26 @@ def discover_ms_intune_cert_connectors(section: Section) -> DiscoveryResult:
 
 def check_ms_intune_cert_connectors(item: str, section: Section) -> CheckResult:
     connector = section.get(item)
-    if not connector:
+    if connector is None:
         return
 
-    connector_connection_last_datetime = datetime.fromisoformat(connector.connector_connection_last)
-    connector_connection_last_timestamp = connector_connection_last_datetime.timestamp()
+    connector_connection_last_timestamp = datetime.fromisoformat(
+        connector.connector_connection_last
+    ).timestamp()
     connector_connection_last_timestamp_render = render.datetime(
-        int(connector_connection_last_timestamp)
+        connector_connection_last_timestamp
     )
 
-    result_summary = f"State: {connector.connector_state}"
+    result_summary = f"State: {connector.connector_state}, Version: {connector.connector_version}"
 
-    result_details = (
-        f"Connector name: {connector.connector_name}"
-        f"\nConnector ID: {connector.connector_id}"
-        f"\nConnector version: {connector.connector_version}"
-        f"\nLast connected: {connector_connection_last_timestamp_render}"
-        f"\nState: {connector.connector_state}"
-    )
+    connector_details_list = [
+        f"Connector name: {connector.connector_name}",
+        f"Connector ID: {connector.connector_id}",
+        f"Connector version: {connector.connector_version}",
+        f"Last connected: {connector_connection_last_timestamp_render}",
+        f"State: {connector.connector_state}",
+    ]
+    result_details = "\n".join(connector_details_list)
 
     if connector.connector_state != "active":
         yield Result(

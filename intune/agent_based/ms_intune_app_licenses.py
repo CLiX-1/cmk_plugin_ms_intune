@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8; py-indent-offset: 4; max-line-length: 100 -*-
 
-# Copyright (C) 2025  Christopher Pommer <cp.software@outlook.de>
+# Copyright (C) 2024, 2025  Christopher Pommer <cp.software@outlook.de>
 
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -94,7 +94,7 @@ def check_ms_intune_app_licenses(
     item: str, params: Mapping[str, Any], section: Section
 ) -> CheckResult:
     license = section.get(item)
-    if not license:
+    if license is None:
         return
 
     app_license_consumed_pct = round(
@@ -146,11 +146,15 @@ def check_ms_intune_app_licenses(
         f"{result_level}"
     )
 
-    result_details = (
-        f"App: {license.app_name} ({license.app_publisher})\n - Type: {license.app_type}\n - "
-        f"Assigned: {license.app_assigned}"
-        f"\n - Total: {license.app_license_total}\n - Used: {license.app_license_consumed}"
-    )
+    app_details_list = [
+        f"Name: {license.app_name}",
+        f"Publisher: {license.app_publisher}",
+        f"Type: {license.app_type}",
+        f"Total: {license.app_license_total}",
+        f"Used: {license.app_license_consumed}",
+        f"Is assigned: {'yes' if license.app_assigned else 'no'}",
+    ]
+    result_details = "\n".join(app_details_list)
 
     yield Result(
         state=result_state,
