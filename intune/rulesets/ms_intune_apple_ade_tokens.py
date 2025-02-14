@@ -47,7 +47,7 @@ def _parameter_form_ms_intune_apple_ade_tokens() -> Dictionary:
         elements={
             "token_expiration": DictElement(
                 parameter_form=SimpleLevels[float](
-                    title=Title("Token expiration"),
+                    title=Title("Token Expiration"),
                     help_text=Help(
                         "Specify the lower levels for the Apple ADE token expiration time. "
                         "The default values are 14 days (WARN) and 5 days (CRIT). "
@@ -72,5 +72,5 @@ rule_spec_ms_intune_apple_ade_tokens = CheckParameters(
     title=Title("Intune Apple ADE Tokens"),
     parameter_form=_parameter_form_ms_intune_apple_ade_tokens,
     topic=Topic.CLOUD,
-    condition=HostAndItemCondition(item_title=Title("ADE token")),
+    condition=HostAndItemCondition(item_title=Title("ADE Token")),
 )

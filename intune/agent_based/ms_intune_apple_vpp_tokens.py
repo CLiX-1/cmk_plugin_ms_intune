@@ -20,7 +20,7 @@
 
 ####################################################################################################
 # Checkmk check plugin for monitoring the Apple VPP tokens from Microsoft Intune.
-# The plugin works with data from the Microsoft Intune Special Agent (ms_intune).
+# The plugin works with data from the Microsoft Intune special agent (ms_intune).
 
 
 # Example data from special agent:
@@ -95,7 +95,7 @@ def check_ms_intune_apple_vpp_tokens(
     item: str, params: Mapping[str, Any], section: Section
 ) -> CheckResult:
     token = section.get(item)
-    if token is None:
+    if not token:
         return
 
     params_levels_token_expiration = params.get("token_expiration")
@@ -105,14 +105,15 @@ def check_ms_intune_apple_vpp_tokens(
 
     token_expiration_timespan = token_expiration_timestamp - datetime.now().timestamp()
 
-    token_details_list = [
-        f"Expiration time: {token_expiration_timestamp_render}",
-        f"Token name: {token.token_name}",
-        f"Token ID: {token.token_id}",
-        f"Apple ID: {token.token_appleid}",
-        f"State: {token.token_state}",
-    ]
-    result_details = "\n".join(token_details_list)
+    result_details = "\n".join(
+        [
+            f"Expiration time: {token_expiration_timestamp_render}",
+            f"Token name: {token.token_name}",
+            f"Token ID: {token.token_id}",
+            f"Apple ID: {token.token_appleid}",
+            f"State: {token.token_state}",
+        ]
+    )
 
     result_summary = (
         f"Expiration time: {token_expiration_timestamp_render}, State: {token.token_state}"

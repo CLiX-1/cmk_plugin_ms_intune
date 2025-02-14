@@ -50,7 +50,7 @@ def _parameter_form_ms_intune_app_licenses() -> Dictionary:
         elements={
             "lic_unit_available_lower": DictElement(
                 parameter_form=CascadingSingleChoice(
-                    title=Title("Licenses lower levels"),
+                    title=Title("Licenses Lower Levels"),
                     help_text=Help(
                         "Set lower-level thresholds for the number of remaining available app "
                         "licenses as absolute or percentage values. To ignore the remaining "
@@ -81,7 +81,7 @@ def _parameter_form_ms_intune_app_licenses() -> Dictionary:
             ),
             "lic_total_min": DictElement(
                 parameter_form=Integer(
-                    title=Title("Activate thresholds at total licenses"),
+                    title=Title("Activate Thresholds at Total Licenses"),
                     help_text=Help(
                         "Set the total number of licenses at which the thresholds will be "
                         "calclulated. If the number of licenses is less, then the "
@@ -99,5 +99,5 @@ rule_spec_ms_intune_app_licenses = CheckParameters(
     title=Title("Intune App Licenses"),
     parameter_form=_parameter_form_ms_intune_app_licenses,
     topic=Topic.CLOUD,
-    condition=HostAndItemCondition(item_title=Title("App name - app type")),
+    condition=HostAndItemCondition(item_title=Title("App Name - App Type")),
 )

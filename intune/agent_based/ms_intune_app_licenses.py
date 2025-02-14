@@ -20,7 +20,7 @@
 
 ####################################################################################################
 # Checkmk check plugin for monitoring the app licenses from Microsoft Intune.
-# The plugin works with data from the Microsoft Intune Special Agent (ms_intune).
+# The plugin works with data from the Microsoft Intune special agent (ms_intune).
 
 # Example data from special agent:
 # <<<ms_intune_app_licenses:sep(0)>>>
@@ -94,7 +94,7 @@ def check_ms_intune_app_licenses(
     item: str, params: Mapping[str, Any], section: Section
 ) -> CheckResult:
     license = section.get(item)
-    if license is None:
+    if not license:
         return
 
     app_license_consumed_pct = round(
@@ -109,11 +109,12 @@ def check_ms_intune_app_licenses(
     params_lic_total_min = params["lic_total_min"]
     if license.app_license_total >= params_lic_total_min:
         params_levels_available = params["lic_unit_available_lower"]
-        if params_levels_available[1][0] == "fixed":
+        if params_levels_available[1][1]:
             warning_level, critical_level = params_levels_available[1][1]
 
             if params_levels_available[0] == "lic_unit_available_lower_pct":
                 levels_consumed_pct = (100 - warning_level, 100 - critical_level)
+
                 available_percent = lic_units_available / license.app_license_total * 100
 
                 if available_percent < critical_level:
@@ -146,15 +147,16 @@ def check_ms_intune_app_licenses(
         f"{result_level}"
     )
 
-    app_details_list = [
-        f"Name: {license.app_name}",
-        f"Publisher: {license.app_publisher}",
-        f"Type: {license.app_type}",
-        f"Total: {license.app_license_total}",
-        f"Used: {license.app_license_consumed}",
-        f"Is assigned: {'yes' if license.app_assigned else 'no'}",
-    ]
-    result_details = "\n".join(app_details_list)
+    result_details = "\n".join(
+        [
+            f"Name: {license.app_name}",
+            f"Publisher: {license.app_publisher}",
+            f"Type: {license.app_type}",
+            f"Total: {license.app_license_total}",
+            f"Used: {license.app_license_consumed}",
+            f"Is assigned: {'yes' if license.app_assigned else 'no'}",
+        ]
+    )
 
     yield Result(
         state=result_state,

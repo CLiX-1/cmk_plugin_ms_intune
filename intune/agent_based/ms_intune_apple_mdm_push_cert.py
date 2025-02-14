@@ -20,7 +20,7 @@
 
 ####################################################################################################
 # Checkmk check plugin for monitoring the Apple MDM push certificate from Microsoft Intune.
-# The plugin works with data from the Microsoft Intune Special Agent (ms_intune).
+# The plugin works with data from the Microsoft Intune special agent (ms_intune).
 
 # Example data from special agent:
 # <<<ms_intune_apple_mdm_push_cert:sep(0)>>>
@@ -70,6 +70,9 @@ def discover_ms_intune_apple_mdm_push_cert(section: Section) -> DiscoveryResult:
 
 def check_ms_intune_apple_mdm_push_cert(params: Mapping[str, Any], section: Section) -> CheckResult:
     cert = section
+    if not cert:
+        return
+
     params_levels_cert_expiration = params.get("cert_expiration")
 
     cert_expiration_timestamp = datetime.fromisoformat(cert.cert_expiration).timestamp()

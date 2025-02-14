@@ -20,7 +20,7 @@
 
 ####################################################################################################
 # Checkmk check plugin for monitoring the certificate connectors from Microsoft Intune.
-# The plugin works with data from the Microsoft Intune Special Agent (ms_intune).
+# The plugin works with data from the Microsoft Intune special agent (ms_intune).
 
 # Example data from special agent:
 # <<<ms_intune_cert_connectors:sep(0)>>>
@@ -90,7 +90,7 @@ def discover_ms_intune_cert_connectors(section: Section) -> DiscoveryResult:
 
 def check_ms_intune_cert_connectors(item: str, section: Section) -> CheckResult:
     connector = section.get(item)
-    if connector is None:
+    if not connector:
         return
 
     connector_connection_last_timestamp = datetime.fromisoformat(
@@ -102,14 +102,15 @@ def check_ms_intune_cert_connectors(item: str, section: Section) -> CheckResult:
 
     result_summary = f"State: {connector.connector_state}, Version: {connector.connector_version}"
 
-    connector_details_list = [
-        f"Connector name: {connector.connector_name}",
-        f"Connector ID: {connector.connector_id}",
-        f"Connector version: {connector.connector_version}",
-        f"Last connected: {connector_connection_last_timestamp_render}",
-        f"State: {connector.connector_state}",
-    ]
-    result_details = "\n".join(connector_details_list)
+    result_details = "\n".join(
+        [
+            f"Connector name: {connector.connector_name}",
+            f"Connector ID: {connector.connector_id}",
+            f"Connector version: {connector.connector_version}",
+            f"Last connected: {connector_connection_last_timestamp_render}",
+            f"State: {connector.connector_state}",
+        ]
+    )
 
     if connector.connector_state != "active":
         yield Result(

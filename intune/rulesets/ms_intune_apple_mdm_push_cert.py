@@ -47,7 +47,7 @@ def _parameter_form_ms_intune_apple_push_cert() -> Dictionary:
         elements={
             "cert_expiration": DictElement(
                 parameter_form=SimpleLevels[float](
-                    title=Title("Certificate expiration"),
+                    title=Title("Certificate Expiration"),
                     help_text=Help(
                         "Specify the lower levels for the Apple MDM push certificate expiration "
                         "time. The default values are 14 days (WARN) and 5 days (CRIT). "

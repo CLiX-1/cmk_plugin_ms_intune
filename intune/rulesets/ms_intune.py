@@ -48,7 +48,7 @@ def _parameter_form_special_agent_ms_intune() -> Dictionary:
             "This special agent requests data from Microsoft Intune using the Microsoft Graph API. "
             "To monitor these resources, add this rule to a single host. You must configure "
             "a Microsoft Entra app registration. For the required permissions, see the "
-            "help sections under <b>Microsoft Intune services to monitor</b>. "
+            "help sections under <b>Microsoft Intune Services to Monitor</b>. "
             "You may also want to adjust the query interval with the rule "
             "<b>Normal check interval for service checks</b>."
         ),
@@ -104,14 +104,14 @@ def _parameter_form_special_agent_ms_intune() -> Dictionary:
             ),
             "app_secret": DictElement(
                 parameter_form=Password(
-                    title=Title("Client secret"),
+                    title=Title("Client Secret"),
                     help_text=Help("The client secret from the Microsoft Entra app registration."),
                 ),
                 required=True,
             ),
             "proxy": DictElement(
                 parameter_form=Proxy(
-                    title=Title("HTTP proxy"),
+                    title=Title("HTTP Proxy"),
                     help_text=Help(
                         "The HTTP proxy used to connect to the Microsoft Graph API. If not set, "
                         "the environment settings will be used."
@@ -120,47 +120,47 @@ def _parameter_form_special_agent_ms_intune() -> Dictionary:
             ),
             "services_to_monitor": DictElement(
                 parameter_form=MultipleChoice(
-                    title=Title("Microsoft Intune services to monitor"),
+                    title=Title("Microsoft Intune Services to Monitor"),
                     help_text=Help(
-                        "Select the Microsoft Intune services that you want to monitor. Ensure "
+                        "Select the Microsoft Intune services you want to monitor. Ensure "
                         "that you add the required Microsoft Graph API permissions to your "
-                        "Microsoft Entra app registration and grant admin consent to them. For"
-                        "App licenses, you must configure at least the "
+                        "Microsoft Entra app registration and grant admin consent to them. For "
+                        "<b>App Licenses</b>, you must configure at least the "
                         "<tt>DeviceManagementApps.Read.All</tt> API application permission. "
-                        "For Apple ADE tokens, Apple MDM push certificate and VPP tokens, you"
-                        "must configure at least the "
+                        "For <br>Apple ADE Tokens</b>, <b>Apple MDM Push Certificate</b> and "
+                        "<b>VPP Tokens</b>, you must configure at least the "
                         "<tt>DeviceManagementServiceConfig.Read.All</tt> API application "
-                        "permission. For Certificate connectors, you must configure at least the "
-                        "<tt>DeviceManagementConfiguration.Read.All</tt> API application "
+                        "permission. For <b>Certificate connectors</b>, you must configure at least "
+                        "the <tt>DeviceManagementConfiguration.Read.All</tt> API application "
                         "permission. "
                     ),
                     elements=[
                         MultipleChoiceElement(
                             name="app_licenses",
-                            title=Title("App licenses"),
+                            title=Title("App Licenses"),
                         ),
                         MultipleChoiceElement(
                             name="apple_ade_tokens",
-                            title=Title("Apple ADE tokens (Automated Device Enrollment)"),
+                            title=Title("Apple ADE Tokens (Automated Device Enrollment)"),
                         ),
                         MultipleChoiceElement(
                             name="apple_mdm_push_cert",
-                            title=Title("Apple MDM push certificate"),
+                            title=Title("Apple MDM Push Certificate"),
                         ),
                         MultipleChoiceElement(
                             name="vpp_tokens",
-                            title=Title("Apple VPP tokens (Volume Purchase Program)"),
+                            title=Title("Apple VPP Tokens (Volume Purchase Program)"),
                         ),
                         MultipleChoiceElement(
                             name="cert_connectors",
-                            title=Title("Certificate connectors"),
+                            title=Title("Certificate Connectors"),
                         ),
                     ],
                     custom_validate=[
                         LengthInRange(
                             min_value=1,
                             error_msg=Message(
-                                "Select one or more <b>Microsoft Intune services to monitor</b>"
+                                "Select one or more <b>Microsoft Intune Services to Monitor</b>"
                             ),
                         ),
                     ],
@@ -178,7 +178,7 @@ def _parameter_form_special_agent_ms_intune() -> Dictionary:
             ),
             "timeout": DictElement(
                 parameter_form=TimeSpan(
-                    title=Title("Timeout for each API request"),
+                    title=Title("Timeout for each API Request"),
                     help_text=Help(
                         "Define a custom timeout in seconds to use for each API request. The "
                         "timeout is used for token request and any service that should be "
