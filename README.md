@@ -1,9 +1,12 @@
 # Checkmk Plugin: Microsoft Intune Special Agent
 
-## Plugin Information
-The Microsoft Intune Special Agent can be integrated into Checkmk 2.3 or newer.
+The Microsoft Intune Special Agent is an extension for the monitoring software **Checkmk**.  
+It can be integrated into Checkmk 2.3 or newer.
 
-You can download the `.mkp` file from the [releases](../../releases) in this repository and upload it directly to your Checkmk site.
+You can download the extension package as an `.mkp` file from the [releases](../../releases) in this repository and upload it directly to your Checkmk site.  
+See the Checkmk [documentation](https://docs.checkmk.com/latest/en/mkps.html) for details.
+
+## Plugin Information
 
 The Plugin provides monitoring for the following components:
 - Intune App Licenses
@@ -12,31 +15,34 @@ The Plugin provides monitoring for the following components:
 - Intune Apple VPP Tokens (Volume Purchase Program)
 - Intune Certificate Connectors
 
+See [Check Details](.//README.md#check-details) for more information.
+
 ## Prerequisites
 
-This Special Agent uses the Microsoft Graph API to collect the monitoring data.
-To access the API, you need a Microsoft Entra tenant and a Microsoft Entra app registration with a client secret.
+This Special Agent uses the Microsoft Graph API to collect the monitoring data.  
+To access the API, you need a Microsoft Entra tenant and a Microsoft Entra app registration with a client secret ([Steps to Get It Working](./README.md#steps-to-get-it-working)).
 
 You need at least the following API **application** permissions for your app registration to use all the checks:
 - *DeviceManagementApps.Read.All*
 - *DeviceManagementConfiguration.Read.All*
 - *DeviceManagementServiceConfig.Read.All*
 
-For a more granular option, the required API permissions per check are listed in the next sections.
+For a more granular options, the required API permissions per check are listed in the next sections.
 
 
 To implement the check, you need to configure the *Microsoft Intune* Special Agent in Checkmk.
 You will need the Microsoft Entra tenant ID, the Microsoft Entra app registration ID and the client secret.
 When you configure the Special Agent, you have the option to select only the services that you want to monitor. You do not have to implement all the checks, but at least one of them.
 
-This plugin uses HTTPS connections to Microsoft.
-Make sure you have enabled **Trust system-wide configured CAs** or uploaded the CA certificates for the Microsoft domains in Checkmk.
-You can find these options in **Setup** > **Global settings** > **Trusted certificate authorities for SSL** under **Site management**.
-If your system does not trust the certificate you will encounter the error: `certificate verify failed: unable to get local issuer certificate`.
-
-Also do not block the communications to:
-- https://login.microsoftonline.com
-- https://graph.microsoft.com
+> [!NOTE]
+> This plugin uses HTTPS connections to Microsoft.
+>Make sure you have enabled **Trust system-wide configured CAs** or uploaded the CA certificates for the Microsoft domains in Checkmk.
+>You can find these options in **Setup** > **Global settings** > **Trusted certificate authorities for SSL** under **Site management**.
+>If your system does not trust the certificate you will encounter the error: `certificate verify failed: unable to get local issuer certificate`.
+>
+>Also do not block the communications to:
+>- https://login.microsoftonline.com
+>- https://graph.microsoft.com
 
 
 ## Check Details
@@ -45,7 +51,7 @@ Also do not block the communications to:
 #### Description
 
 This check monitors available application licenses from Microsoft Intune.
-Only applications with a publishingState of `published` are queried.
+Only applications with a `publishingState` of `published` are queried.
 If an application does not have a `totalLicenseCount` attribute, it is ignored.
 
 #### Checkmk Service Example
@@ -68,6 +74,8 @@ If an application does not have a `totalLicenseCount` attribute, it is ignored.
 #### Known Issues
 
 - Some applications are universal applications. For example, they are valid for both iOS and macOS and are counted together. These will appear as two services with the same counts.
+
+---
 
 ### Intune Apple ADE Tokens
 
@@ -93,6 +101,8 @@ Apple Automated Device Enrollment (ADE) was formerly known as the Apple Device E
 
 2025-02-27: This endpoint is only available in the beta API version.
 
+---
+
 ### Intune Apple MDM Push Certificate
 
 #### Description
@@ -113,6 +123,8 @@ You need this certificate to manage and enroll Apple devices in Microsoft Intune
 **API Permissions**: At least *DeviceManagementServiceConfig.Read.All* (Application permission)
 
 **Endpoint**: `https://graph.microsoft.com/v1.0/deviceManagement/applePushNotificationCertificate`
+
+---
 
 ### Intune Apple VPP Tokens
 
@@ -137,6 +149,8 @@ You need this token to manage and distribute applications purchased through the 
 
 2025-02-27: The beta endpoint is required, because the `displayName` attribute is not available in the 1.0 API version
 
+---
+
 ### Intune Certificate Connectors
 
 #### Description
@@ -159,6 +173,8 @@ No parameters are available for configuration.
 **Endpoint**: `https://graph.microsoft.com/beta/deviceManagement/ndesConnectors`
 
 2025-02-27: This endpoint is only available in the beta API version.
+
+---
 
 ## Steps to Get It Working
 
