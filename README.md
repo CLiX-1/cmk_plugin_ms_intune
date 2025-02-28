@@ -29,9 +29,8 @@ You need at least the following API **application** permissions for your app reg
 
 For a more granular options, the required API permissions per check are listed in the next sections.
 
-
 To activate the checks, you must configure the **Microsoft Intune** Special Agent in Checkmk.
-You will need the Microsoft Entra tenant ID, the Microsoft Entra app registration ID and the client secret.
+You will need the Microsoft Entra tenant ID, the App ID and the client secret from the Microsoft Entra app registration.
 When you configure the Special Agent, you have the option to select only the services that you want to monitor. You do not have to implement all the checks, but at least one of them.
 
 > [!NOTE]
@@ -43,7 +42,6 @@ When you configure the Special Agent, you have the option to select only the ser
 >Also do not block the communications to:
 >- https://login.microsoftonline.com
 >- https://graph.microsoft.com
-
 
 ## Check Details
 ### Intune App Licenses
