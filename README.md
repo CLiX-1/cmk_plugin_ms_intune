@@ -1,6 +1,6 @@
 # Checkmk Plugin: Microsoft Intune Special Agent
 
-The Microsoft Intune Special Agent is an extension for the monitoring software **Checkmk**.  
+The **Microsoft Intune** Special Agent is an extension for the monitoring software **Checkmk**.  
 It can be integrated into Checkmk 2.3 or newer.
 
 You can download the extension package as an `.mkp` file from the [releases](../../releases) in this repository and upload it directly to your Checkmk site.  
@@ -15,12 +15,12 @@ The Plugin provides monitoring for the following components:
 - Intune Apple VPP Tokens (Volume Purchase Program)
 - Intune Certificate Connectors
 
-See [Check Details](.//README.md#check-details) for more information.
+See [Check Details](#check-details) for more information.
 
 ## Prerequisites
 
 This Special Agent uses the Microsoft Graph API to collect the monitoring data.  
-To access the API, you need a Microsoft Entra tenant and a Microsoft Entra app registration with a client secret ([Steps to Get It Working](./README.md#steps-to-get-it-working)).
+To access the API, you need a Microsoft Entra tenant and a Microsoft Entra app registration with a client secret ([Steps to Get It Working](#steps-to-get-it-working)).
 
 You need at least the following API **application** permissions for your app registration to use all the checks:
 - *DeviceManagementApps.Read.All*
@@ -30,7 +30,7 @@ You need at least the following API **application** permissions for your app reg
 For a more granular options, the required API permissions per check are listed in the next sections.
 
 
-To implement the check, you need to configure the *Microsoft Intune* Special Agent in Checkmk.
+To activate the checks, you must configure the **Microsoft Intune** Special Agent in Checkmk.
 You will need the Microsoft Entra tenant ID, the Microsoft Entra app registration ID and the client secret.
 When you configure the Special Agent, you have the option to select only the services that you want to monitor. You do not have to implement all the checks, but at least one of them.
 
@@ -174,8 +174,6 @@ No parameters are available for configuration.
 
 2025-02-27: This endpoint is only available in the beta API version.
 
----
-
 ## Steps to Get It Working
 
 To use this Checkmk Special Agent, you must configure a Microsoft Entra application to access the Microsoft Graph API endpoints.
@@ -229,7 +227,7 @@ You must also have a host in Checkmk and configure the Special Agent rule for th
 1. Navigate to the Special Agent rule **Setup** > **Microsoft Intune** (use the search bar)
 2. Add a new rule and configure the required settings
     -   **Application (client) ID** and **Directory (tenant) ID** from the Microsoft Entra Application
-    -   For **Client secret** select **From password store** and the password from **Add a New Password**
+    -   For **Client Secret** select **From password store** and the password from **Add a New Password**
     -   Select all services that you want to monitor
     -   Add the newly created host in **Explicit hosts**
 3. Save and go to your new host and discover your new services
