@@ -84,7 +84,7 @@ def _parameter_form_ms_intune_app_licenses() -> Dictionary:
                     title=Title("Activate Thresholds at Total Licenses"),
                     help_text=Help(
                         "Set the total number of licenses at which the thresholds will be "
-                        "calclulated. If the number of licenses is less, then the "
+                        "calculated. If the number of licenses is less, then the "
                         "thresholds will be ignored."
                     ),
                     prefill=DefaultValue(1),
