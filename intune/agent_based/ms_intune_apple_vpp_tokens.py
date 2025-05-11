@@ -50,6 +50,7 @@ from cmk.agent_based.v2 import (
     CheckResult,
     DiscoveryResult,
     render,
+    Metric,
     Result,
     Service,
     State,
@@ -123,6 +124,7 @@ def check_ms_intune_apple_vpp_tokens(
         yield from check_levels(
             token_expiration_timespan,
             levels_lower=(params_levels_token_expiration),
+            metric_name="ms_intune_apple_vpp_tokens_remaining_validity",
             label="Remaining",
             render_func=render.timespan,
         )
@@ -132,6 +134,13 @@ def check_ms_intune_apple_vpp_tokens(
             levels_lower=(params_levels_token_expiration),
             label="Expired",
             render_func=lambda x: f"{render.timespan(abs(x))} ago",
+        )
+
+        # To prevent a negative value for the metric.
+        yield Metric(
+            name="ms_intune_apple_vpp_tokens_remaining_validity",
+            value=0.0,
+            levels=params_levels_token_expiration[1],
         )
 
     if token.token_state != "valid":

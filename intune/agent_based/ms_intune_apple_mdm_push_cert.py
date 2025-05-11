@@ -43,6 +43,7 @@ from cmk.agent_based.v2 import (
     CheckResult,
     DiscoveryResult,
     render,
+    Metric,
     Result,
     Service,
     State,
@@ -84,6 +85,7 @@ def check_ms_intune_apple_mdm_push_cert(params: Mapping[str, Any], section: Sect
         yield from check_levels(
             cert_expiration_timespan,
             levels_lower=(params_levels_cert_expiration),
+            metric_name="ms_intune_apple_mdm_push_cert_remaining_validity",
             label="Remaining",
             render_func=render.timespan,
         )
@@ -93,6 +95,13 @@ def check_ms_intune_apple_mdm_push_cert(params: Mapping[str, Any], section: Sect
             levels_lower=(params_levels_cert_expiration),
             label="Expired",
             render_func=lambda x: f"{render.timespan(abs(x))} ago",
+        )
+
+        # To prevent a negative value for the metric.
+        yield Metric(
+            name="ms_intune_apple_mdm_push_cert_remaining_validity",
+            value=0.0,
+            levels=params_levels_cert_expiration[1],
         )
 
     yield Result(
