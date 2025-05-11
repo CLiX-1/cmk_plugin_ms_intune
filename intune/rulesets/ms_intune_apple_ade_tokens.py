@@ -33,6 +33,7 @@ from cmk.rulesets.v1.form_specs import (
     TimeMagnitude,
     TimeSpan,
 )
+from cmk.rulesets.v1.form_specs.validators import NumberInRange
 from cmk.rulesets.v1.rule_specs import CheckParameters, HostAndItemCondition, Topic
 
 
@@ -54,6 +55,7 @@ def _parameter_form_ms_intune_apple_ade_tokens() -> Dictionary:
                         "To ignore token expiration, select 'No levels'."
                     ),
                     form_spec_template=TimeSpan(
+                        custom_validate=(NumberInRange(min_value=0),),
                         displayed_magnitudes=[
                             TimeMagnitude.DAY,
                         ],
