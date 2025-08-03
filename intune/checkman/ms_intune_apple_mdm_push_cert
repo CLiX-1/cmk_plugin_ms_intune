@@ -1,15 +1,38 @@
 title: Microsoft Intune: Apple MDM Push Certificate
-agents: intune
-catalog: cloud/Microsoft
+agents: special
+catalog: cloud/microsoft
 license: GPLv2
 distribution: Christopher Pommer
 description:
- This check monitors the expiration time of an Apple MDM push certificate
+ This check monitors the expiration status of the Apple MDM Push Certificate
  configured in Microsoft Intune.
 
- The status {OK}, {WARN} and {CRIT} depends on the configured check levels.
+ The check processes data collected by the {Microsoft Intune} special agent,
+ which queries the Microsoft Graph API to retrieve the MDM push certificate
+ information from the Intune tenant.
 
- You have to configure the special agent {Microsoft Intune}.
+ The certificate must be renewed annually to maintain iOS, iPadOS, and macOS
+ device management functionality. The service monitors remaining time until
+ expiration and uses configurable thresholds to alert administrators before
+ the certificate expires.
+
+ Default mapping:
+
+ {OK}: Certificate expires in more than 14 days
+
+ {WARN}: Certificate expires within 14 days
+
+ {CRIT}: Certificate expires within 5 days
+
+ For expired certificates, the service continues to report critical state and
+ displays the expiration timespan as "X ago" format.
+
+ The service details include the certificate expiration time and the associated
+ Apple ID used for certificate management.
+
+ You must configure the {Microsoft Intune} special agent to collect Apple MDM
+ Push Certificate data from your Intune tenant.
 
 discovery:
- One service is created.
+ One service named "Intune Apple MDM push certificate" is created automatically
+ if an Apple MDM Push Certificate is configured in the Intune tenant.

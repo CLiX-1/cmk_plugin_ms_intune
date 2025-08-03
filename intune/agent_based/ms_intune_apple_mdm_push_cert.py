@@ -17,12 +17,14 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-
 ####################################################################################################
-# Checkmk check plugin for monitoring the Apple MDM push certificate from Microsoft Intune.
-# The plugin works with data from the Microsoft Intune special agent (ms_intune).
+# CHECKMK CHECK PLUG-IN: Microsoft Intune Apple MDM Push Certificate
+#
+# This plug-in generates the Checkmk services and determines their status.
+# This file is part of the Microsoft Intune special agent (ms_intune).
+####################################################################################################
 
-# Example data from special agent:
+# Example data from special agent (formatted):
 # <<<ms_intune_apple_mdm_push_cert:sep(0)>>>
 # {
 #     "cert_appleid": "mail@domain.de",

@@ -1,22 +1,49 @@
 title: Microsoft Intune: Apple VPP Tokens
-agents: intune
-catalog: cloud/Microsoft
+agents: special
+catalog: cloud/microsoft
 license: GPLv2
 distribution: Christopher Pommer
 description:
- This check monitors the status and expiration time of the Apple VPP
- (Volume Purchase Program) tokens configured in Microsoft Intune.
+ This check monitors the status and expiration of Apple VPP (Volume Purchase Program)
+ tokens configured in Microsoft Intune.
 
- The service is {OK}, if the connector has the status "valid".
- If the connector has a different state, then the services is {CRIT}.
+ The check processes data collected by the {Microsoft Intune} special agent, which
+ queries the Microsoft Graph API to retrieve information about all configured VPP
+ tokens in the Intune tenant.
 
- Otherwise the levels {OK}, {WARN} and {CRIT} depends on the
- configured check levels for the token expiration time.
+ VPP tokens have both a validity state and an expiration date. The service monitors
+ both aspects:
 
- You have to configure the special agent {Microsoft Intune}.
+ Token validity state:
+
+ - {Token state "valid"}: Normal expiration monitoring applies
+
+ - {Any other token state}: Service immediately reports CRIT regardless of expiration
+
+ Expiration monitoring (when token state is "valid"):
+
+ {OK}: Token expires in more than 14 days
+
+ {WARN}: Token expires within 14 days
+
+ {CRIT}: Token expires within 5 days
+
+ For expired tokens, the service continues to report critical state and displays
+ the expiration timespan as "X ago" format.
+
+ The service details include complete token information such as expiration time,
+ token name, unique token ID, token state, and associated Apple ID for administrative
+ reference.
+
+ You must configure the {Microsoft Intune} special agent to collect Apple VPP
+ token data from your Intune tenant.
 
 item:
- The name of the VPP token.
+ The name of the Apple VPP token as configured in Intune. If multiple tokens
+ share the same name, the last 4 characters of the token ID are appended
+ for unique identification (e.g., "Token 1 a1b2").
 
 discovery:
- One service is created for each VPP token.
+ One service is created automatically for each Apple VPP token found in the
+ Intune tenant. Services are named "Intune Apple VPP token {token_name}" where
+ {token_name} is the configured token name, potentially with ID suffix for uniqueness.

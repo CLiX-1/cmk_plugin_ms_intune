@@ -17,11 +17,12 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-
 ####################################################################################################
-# Checkmk ruleset to set the expiration time thresholds of Apple ADE tokens.
-# This ruleset is part of the Microsoft Intune special agent (ms_intune).
-
+# CHECKMK RULESET: Microsoft Intune Apple ADE Tokens (check plug-in)
+#
+# This file defines the check plug-in parameters for the "Microsoft Intune Apple ADE Tokens" check.
+# The check is part of the Microsoft Intune special agent (ms_intune).
+####################################################################################################
 
 from cmk.rulesets.v1 import Help, Title
 from cmk.rulesets.v1.form_specs import (
@@ -39,7 +40,7 @@ from cmk.rulesets.v1.rule_specs import CheckParameters, HostAndItemCondition, To
 
 def _parameter_form_ms_intune_apple_ade_tokens() -> Dictionary:
     return Dictionary(
-        title=Title("Intune Apple ADE Tokens"),
+        title=Title("Check parameters"),
         help_text=Help(
             "Parameters for the expiration time thresholds from Apple ADE tokens "
             "(Automated Device Enrollment) configured in Microsoft Intune. "
@@ -48,7 +49,7 @@ def _parameter_form_ms_intune_apple_ade_tokens() -> Dictionary:
         elements={
             "token_expiration": DictElement(
                 parameter_form=SimpleLevels[float](
-                    title=Title("Token Expiration"),
+                    title=Title("Token expiration"),
                     help_text=Help(
                         "Specify the lower levels for the Apple ADE token expiration time. "
                         "The default values are 14 days (WARN) and 5 days (CRIT). "
@@ -71,7 +72,7 @@ def _parameter_form_ms_intune_apple_ade_tokens() -> Dictionary:
 
 rule_spec_ms_intune_apple_ade_tokens = CheckParameters(
     name="ms_intune_apple_ade_tokens",
-    title=Title("Intune Apple ADE Tokens"),
+    title=Title("Microsoft Intune Apple ADE Tokens"),
     parameter_form=_parameter_form_ms_intune_apple_ade_tokens,
     topic=Topic.CLOUD,
     condition=HostAndItemCondition(item_title=Title("ADE Token")),

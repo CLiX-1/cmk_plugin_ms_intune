@@ -17,22 +17,18 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-
 ####################################################################################################
-# This Checkmk plugin (Special Agent) retrieves information from Microsoft Intune using the
-# Microsoft Graph API. The plugin can be used to monitor the following services:
-# - App Licenses
-# - Apple Automated Device Enrollment (ADE) Tokens
-# - Apple MDM Push Certificate
-# - Apple VPP Tokens
-# - Certificate Connectors
-
+# CHECKMK SPECIAL AGENT: Microsoft Intune
+#
+# This script retrieves information about Microsoft Intune using the Microsoft Graph API.
+# This file is part of the Microsoft Intune special agent (ms_intune).
+####################################################################################################
 
 import sys
 import argparse
 import json
 from pathlib import Path
-from typing import List, Optional, TypedDict
+from typing import TypedDict
 
 import requests
 
@@ -57,47 +53,46 @@ def map_app_type(app_type):
 
 
 def parse_arguments() -> argparse.Namespace:
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description="Checkmk special agent for Microsoft Intune",
+    )
     parser.add_argument(
-        "--tenant-id", required=True, help="The unique ID from the Microsoft Entra tenant."
+        "--tenant-id",
+        required=True,
+        help="Microsoft Entra tenant ID",
     )
     parser.add_argument(
         "--app-id",
         required=True,
-        help="The App ID of the Microsoft Entra app registration for Microsoft Graph API requests.",
+        help="Application (client) ID of the Microsoft Entra app registration",
     )
     parser.add_argument(
         "--app-secret",
         required=True,
-        help="The client secret from the Microsoft Entra app registration.",
-    )
-    parser.add_argument(
-        "--proxy",
-        required=False,
         help=(
-            "The HTTP proxy used to connect to the Microsoft Graph API. If not set, the "
-            "environment settings will be used."
+            "Password store reference of the application (client) secret "
+            "(e.g., 'secret_id:/omd/sites/<site>/var/check_mk/passwords_merged')"
         ),
     )
     parser.add_argument(
         "--services-to-monitor",
         required=False,
         help=(
-            "Comma-separated list of Microsoft Intune services you want to monitor. "
-            "Possible values: app_licenses, apple_ade_tokens, apple_mdm_push_cert, cert_connectors"
-            ", vpp_tokens"
+            "Comma-separated services to monitor (app_licenses, apple_ade_tokens, "
+            "apple_mdm_push_cert, cert_connectors, vpp_tokens)"
         ),
+    )
+    parser.add_argument(
+        "--proxy",
+        required=False,
+        help="HTTP proxy (FROM_ENVIRONMENT, NO_PROXY, or URL) (default: environment settings)",
     )
     parser.add_argument(
         "--timeout",
         required=False,
         type=float,
         default=10.0,
-        help=(
-            "Define a custom timeout in seconds to use for each API request. The "
-            "timeout is used for token request and any service that should be "
-            "monitored. The default timeout is 10s."
-        ),
+        help="API request timeout in seconds (default: %(default)s)",
     )
 
     return parser.parse_args()
@@ -175,7 +170,7 @@ class IntuneApp(TypedDict):
     app_assigned: bool
 
 
-def get_intune_app_licenses(token: str, timeout: float, proxy: HTTPProxyConfig) -> List[IntuneApp]:
+def get_intune_app_licenses(token: str, timeout: float, proxy: HTTPProxyConfig) -> list[IntuneApp]:
     # only iosVppApp available in v1.0 (2024-07-17)
     intune_apps_url = (
         "https://graph.microsoft.com/beta/deviceAppManagement/mobileApps"
@@ -250,7 +245,7 @@ class AdeToken(TypedDict):
 
 def get_intune_apple_ade_tokens(
     token: str, timeout: float, proxy: HTTPProxyConfig
-) -> List[AdeToken]:
+) -> list[AdeToken]:
     # endpoint not available in v1.0 (2025-02-13)
     intune_ade_tokens_url = (
         "https://graph.microsoft.com/beta/deviceManagement/depOnboardingSettings"
@@ -292,7 +287,7 @@ def get_intune_apple_ade_tokens(
 
     intune_ade_tokens = intune_ade_tokens_response.json().get("value", [])
 
-    ade_token_list: List[AdeToken] = sorted(
+    ade_token_list: list[AdeToken] = sorted(
         [
             {
                 "token_appleid": token["appleIdentifier"],
@@ -316,7 +311,7 @@ class ApplePushCert(TypedDict):
 
 def get_intune_apple_mdm_push_cert(
     token: str, timeout: float, proxy: HTTPProxyConfig
-) -> Optional[ApplePushCert]:
+) -> ApplePushCert | None:
     intune_cert_url = (
         "https://graph.microsoft.com/v1.0/deviceManagement/applePushNotificationCertificate"
         "?$select=appleIdentifier,expirationDateTime"
@@ -375,7 +370,7 @@ class AppleVppToken(TypedDict):
 
 def get_intune_apple_vpp_tokens(
     token: str, timeout: float, proxy: HTTPProxyConfig
-) -> List[AppleVppToken]:
+) -> list[AppleVppToken]:
     # displayName not available in v1.0 (2025-02-13)
     intune_vpp_tokens_url = (
         "https://graph.microsoft.com/beta/deviceAppManagement/vppTokens"
@@ -417,7 +412,7 @@ def get_intune_apple_vpp_tokens(
 
     intune_vpp_tokens = intune_vpp_tokens_response.json().get("value", [])
 
-    vpp_token_list: List[AppleVppToken] = sorted(
+    vpp_token_list: list[AppleVppToken] = sorted(
         [
             {
                 "token_appleid": token["appleId"],
@@ -444,7 +439,7 @@ class CertConnector(TypedDict):
 
 def get_intune_cert_connectors(
     token: str, timeout: float, proxy: HTTPProxyConfig
-) -> List[CertConnector]:
+) -> list[CertConnector]:
     # endpoint not available in v1.0 (2025-02-13)
     intune_cert_connectors_url = (
         "https://graph.microsoft.com/beta/deviceManagement/ndesConnectors"
@@ -485,7 +480,7 @@ def get_intune_cert_connectors(
 
     intune_cert_connectors = intune_cert_connectors_response.json().get("value", [])
 
-    connectors_list: List[CertConnector] = sorted(
+    connectors_list: list[CertConnector] = sorted(
         [
             {
                 "connector_connection_last": connector["lastConnectionDateTime"],

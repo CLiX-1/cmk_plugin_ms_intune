@@ -17,10 +17,12 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-
 ####################################################################################################
-# The graph parameters are part of the Microsoft Intune special agent (ms_intune).
-
+# CHECKMK METRICS & GRAPHS: Microsoft Intune
+#
+# This file defines the Checkmk metrics and graphs for the check plug-ins.
+# It is part of the Microsoft Intune special agent (ms_intune).
+####################################################################################################
 
 from cmk.graphing.v1 import Title
 from cmk.graphing.v1.graphs import Graph, MinimalRange
@@ -40,8 +42,9 @@ UNIT_COUNTER = Unit(DecimalNotation(""), StrictPrecision(0))
 UNIT_PERCENTAGE = Unit(DecimalNotation("%"))
 UNIT_TIME = Unit(TimeNotation())
 
-
+# --------------------------------------------------------------------------------------------------
 # Microsoft Intune App Licenses
+# --------------------------------------------------------------------------------------------------
 
 metric_ms_intune_app_licenses_consumed = Metric(
     name="ms_intune_app_licenses_consumed",
@@ -103,8 +106,9 @@ perfometer_ms_intune_app_licenses_consumed_pct = Perfometer(
     segments=["ms_intune_app_licenses_consumed_pct"],
 )
 
-
+# --------------------------------------------------------------------------------------------------
 # Microsoft Intune Apple ADE tokens
+# --------------------------------------------------------------------------------------------------
 
 metric_ms_intune_apple_ade_tokens_remaining_validity = Metric(
     name="ms_intune_apple_ade_tokens_remaining_validity",
@@ -120,7 +124,9 @@ perfometer_ms_intune_apple_ade_tokens_remaining_validity = Perfometer(
 )
 
 
+# --------------------------------------------------------------------------------------------------
 # Microsoft Intune Apple MDM Push Certificate
+# --------------------------------------------------------------------------------------------------
 
 metric_ms_intune_apple_mdm_push_cert_remaining_validity = Metric(
     name="ms_intune_apple_mdm_push_cert_remaining_validity",
@@ -135,8 +141,9 @@ perfometer_ms_intune_apple_mdm_push_cert_remaining_validity = Perfometer(
     segments=["ms_intune_apple_mdm_push_cert_remaining_validity"],
 )
 
-
+# --------------------------------------------------------------------------------------------------
 # Microsoft Intune Apple VPP Tokens
+# --------------------------------------------------------------------------------------------------
 
 metric_ms_intune_apple_vpp_tokens_remaining_validity = Metric(
     name="ms_intune_apple_vpp_tokens_remaining_validity",

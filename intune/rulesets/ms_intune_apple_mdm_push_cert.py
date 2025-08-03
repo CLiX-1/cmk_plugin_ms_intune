@@ -17,11 +17,13 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-
 ####################################################################################################
-# Checkmk ruleset to set the expiration time thresholds for the Apple MDM push certificate.
-# This ruleset is part of the Microsoft Intune special agent (ms_intune).
-
+# CHECKMK RULESET: Microsoft Intune Apple MDM Push Certificate (check plug-in)
+#
+# This file defines the check plug-in parameters for the
+# "Microsoft Intune Apple MDM Push Certificate" check.
+# The check is part of the Microsoft Intune special agent (ms_intune).
+####################################################################################################
 
 from cmk.rulesets.v1 import Help, Title
 from cmk.rulesets.v1.form_specs import (
@@ -39,7 +41,7 @@ from cmk.rulesets.v1.rule_specs import CheckParameters, HostCondition, Topic
 
 def _parameter_form_ms_intune_apple_push_cert() -> Dictionary:
     return Dictionary(
-        title=Title("Intune Apple MDM Push Certificate"),
+        title=Title("Check parameters"),
         help_text=Help(
             "Parameters for the expiration time thresholds from the Apple MDM push certificate "
             "configured in Microsoft Intune. "
@@ -48,7 +50,7 @@ def _parameter_form_ms_intune_apple_push_cert() -> Dictionary:
         elements={
             "cert_expiration": DictElement(
                 parameter_form=SimpleLevels[float](
-                    title=Title("Certificate Expiration"),
+                    title=Title("Certificate expiration"),
                     help_text=Help(
                         "Specify the lower levels for the Apple MDM push certificate expiration "
                         "time. The default values are 14 days (WARN) and 5 days (CRIT). "
@@ -71,7 +73,7 @@ def _parameter_form_ms_intune_apple_push_cert() -> Dictionary:
 
 rule_spec_ms_intune_apple_mdm_push_cert = CheckParameters(
     name="ms_intune_apple_mdm_push_cert",
-    title=Title("Intune Apple MDM Push Certificate"),
+    title=Title("Microsoft Intune Apple MDM Push Certificate"),
     parameter_form=_parameter_form_ms_intune_apple_push_cert,
     topic=Topic.CLOUD,
     condition=HostCondition(),

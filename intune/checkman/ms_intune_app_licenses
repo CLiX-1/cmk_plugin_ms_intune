@@ -1,18 +1,48 @@
 title: Microsoft Intune: App Licenses
-agents: intune
-catalog: cloud/Microsoft
+agents: special
+catalog: cloud/microsoft
 license: GPLv2
 distribution: Christopher Pommer
 description:
- This check monitors the licenses from published Intune applications.
+ This check monitors license consumption for applications published through
+ Microsoft Intune. Microsoft Intune manages mobile applications and can distribute
+ licensed apps from various sources including the iOS Volume Purchase Program (VPP).
 
- Depending on the configured check levels, the service is in
- state {OK}, {WARN} or {CRIT}.
+ The check processes data collected by the {Microsoft Intune} special agent, which
+ queries the Microsoft Graph API to retrieve license information for all published
+ applications in the Intune tenant.
 
- You have to configure the special agent {Microsoft Intune}.
+ License monitoring tracks consumption and availability with configurable thresholds:
+
+ - {Absolute thresholds}: Alert when available licenses fall below specific numbers
+
+ - {Percentage thresholds}: Alert when available licenses fall below specific percentages
+
+ - {Minimum license threshold}: Only monitor apps with at least a specified number of total licenses
+
+ The service displays consumption percentage, used and available license counts.
+ Performance metrics are provided for tracking license usage trends over time.
+
+ Service states are configurable based on available license thresholds. 
+ Default mapping:
+
+ {OK}: Available licenses below minimum monitoring threshold
+
+ {WARN}: Available licenses below warning threshold (default: 10% remaining)
+
+ {CRIT}: Available licenses below critical threshold (default: 5% remaining)
+
+ The service details include application publisher, type, total licenses, consumption
+ status, and assignment information.
+
+ You must configure the {Microsoft Intune} special agent to collect application
+ license data from your Intune tenant.
 
 item:
- The type and application name.
+ The application name combined with the app type, formatted as "{app_name} - {app_type}".
+ For example, app types include "iOS VPP" for iOS Volume Purchase Program apps.
 
 discovery:
- One service is created for each application name and type combination.
+ One service is created automatically for each published application found in the
+ Intune tenant. Services are named "Intune app {app_name} - {app_type}" where
+ both the application name and distribution type are included for unique identification.

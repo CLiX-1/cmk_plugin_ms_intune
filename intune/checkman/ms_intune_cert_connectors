@@ -1,19 +1,38 @@
 title: Microsoft Intune: Certificate Connectors
-agents: intune
-catalog: cloud/Microsoft
+agents: special
+catalog: cloud/microsoft
 license: GPLv2
 distribution: Christopher Pommer
 description:
- This check monitors the status of certificate connectors configured
- in Microsoft Intune.
+ This check monitors the status of certificate connectors configured in
+ Microsoft Intune. Certificate connectors enable Intune to issue certificates
+ to managed devices by connecting to on-premises Certificate Authorities (CAs).
 
- The service is {OK}, if the connector has the status "active".
- If the connector has a different state, then the services is {CRIT}.
+ The check processes data collected by the {Microsoft Intune} special agent,
+ which queries the Microsoft Graph API to retrieve information about all
+ configured certificate connectors in the Intune tenant.
 
- You have to configure the special agent {Microsoft Intune}.
+ Certificate connectors must maintain an "active" state to function properly
+ and issue certificates to devices. The service monitors connector state:
+
+ {OK}: Connector state is "active"
+
+ {CRIT}: Connector state is any value other than "active"
+
+ The service displays the connector state and version in the summary, with
+ detailed information including connector name, unique ID, version, last
+ connection time, and current state for administrative reference.
+
+ You must configure the {Microsoft Intune} special agent to collect certificate
+ connector data from your Intune tenant.
 
 item:
- The name of the intune connector.
+ The name of the certificate connector as configured in Intune. If multiple
+ connectors share the same name, the last 4 characters of the connector ID
+ are appended for unique identification (e.g., "Connector1 a1b2").
 
 discovery:
- One service is created for each intune connector.
+ One service is created automatically for each certificate connector found in
+ the Intune tenant. Services are named "Intune connector {connector_name}" where
+ {connector_name} is the configured connector name, potentially with ID suffix
+ for uniqueness.

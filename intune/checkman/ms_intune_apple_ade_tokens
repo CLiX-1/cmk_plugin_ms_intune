@@ -1,19 +1,46 @@
 title: Microsoft Intune: Apple ADE Tokens
-agents: intune
-catalog: cloud/Microsoft
+agents: special
+catalog: cloud/microsoft
 license: GPLv2
 distribution: Christopher Pommer
 description:
- This check monitors expiration time of the Apple ADE
- (Automated Device Enrollment) tokens configured in Microsoft Intune.
+ This check monitors the expiration status of Apple ADE (Automated Device Enrollment)
+ tokens configured in Microsoft Intune.
 
- Depending on the configured check levels, the service is in
- state {OK}, {WARN} or {CRIT}.
+ The check processes data collected by the {Microsoft Intune} special agent, which
+ queries the Microsoft Graph API to retrieve information about all configured ADE
+ tokens in the Intune tenant.
 
- You have to configure the special agent {Microsoft Intune}.
+ ADE tokens have expiration dates and must be renewed periodically to maintain
+ automated device enrollment functionality. The service monitors remaining time
+ until expiration and uses configurable thresholds to alert administrators before
+ tokens expire.
+
+ Service states are determined by remaining validity time with configurable thresholds.
+ Default mapping:
+
+ {OK}: Token expires in more than 14 days
+
+ {WARN}: Token expires within 14 days (default warning threshold)
+
+ {CRIT}: Token expires within 5 days (default critical threshold)
+
+ For expired tokens, the service continues to report critical state and displays
+ the expiration timespan as "X ago" format.
+
+ The service details include complete token information such as expiration time,
+ token name, unique token ID, token type, and associated Apple ID for administrative
+ reference.
+
+ You must configure the {Microsoft Intune} special agent to collect Apple ADE
+ token data from your Intune tenant.
 
 item:
- The name of the ADE token.
+ The name of the Apple ADE token as configured in Intune. If multiple tokens
+ share the same name, the last 4 characters of the token ID are appended
+ for unique identification (e.g., "Apple Business Manager a1b2").
 
 discovery:
- One service is created for each ADE token.
+ One service is created automatically for each Apple ADE token found in the
+ Intune tenant. Services are named "Intune Apple ADE token {token_name}" where
+ {token_name} is the configured token name, potentially with ID suffix for uniqueness.

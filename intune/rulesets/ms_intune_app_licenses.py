@@ -17,11 +17,12 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-
 ####################################################################################################
-# Checkmk ruleset to set thresholds for the count of available Microsoft Intune app licenses.
-# This ruleset is part of the Microsoft Intune special agent (ms_intune).
-
+# CHECKMK RULESET: Microsoft Intune App Licenses (check plug-in)
+#
+# This file defines the check plug-in parameters for the "Microsoft Intune App Licenses" check.
+# The check is part of the Microsoft Intune special agent (ms_intune).
+####################################################################################################
 
 from cmk.rulesets.v1 import Help, Title
 from cmk.rulesets.v1.form_specs import (
@@ -41,7 +42,7 @@ from cmk.rulesets.v1.rule_specs import CheckParameters, HostAndItemCondition, To
 
 def _parameter_form_ms_intune_app_licenses() -> Dictionary:
     return Dictionary(
-        title=Title("Intune App Licenses"),
+        title=Title("Check parameters"),
         help_text=Help(
             "Check parameters for the Microsoft Intune app licenses. Each app can have its own set "
             "of parameters. To use this service, you need to set up the <b>Microsoft Intune</b> "
@@ -50,7 +51,7 @@ def _parameter_form_ms_intune_app_licenses() -> Dictionary:
         elements={
             "lic_unit_available_lower": DictElement(
                 parameter_form=CascadingSingleChoice(
-                    title=Title("Licenses Lower Levels"),
+                    title=Title("Licenses lower levels"),
                     help_text=Help(
                         "Set lower-level thresholds for the number of remaining available app "
                         "licenses as absolute or percentage values. To ignore the remaining "
@@ -81,7 +82,7 @@ def _parameter_form_ms_intune_app_licenses() -> Dictionary:
             ),
             "lic_total_min": DictElement(
                 parameter_form=Integer(
-                    title=Title("Activate Thresholds at Total Licenses"),
+                    title=Title("Activate thresholds at total licenses"),
                     help_text=Help(
                         "Set the total number of licenses at which the thresholds will be "
                         "calculated. If the number of licenses is less, then the "
@@ -96,7 +97,7 @@ def _parameter_form_ms_intune_app_licenses() -> Dictionary:
 
 rule_spec_ms_intune_app_licenses = CheckParameters(
     name="ms_intune_app_licenses",
-    title=Title("Intune App Licenses"),
+    title=Title("Microsoft Intune App Licenses"),
     parameter_form=_parameter_form_ms_intune_app_licenses,
     topic=Topic.CLOUD,
     condition=HostAndItemCondition(item_title=Title("App Name - App Type")),
